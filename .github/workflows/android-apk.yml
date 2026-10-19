@@ -1,0 +1,263 @@
+name: Build FETROS Android APK (bundled · offline-ready)
+
+# ─────────────────────────────────────────────────────────────────────────────
+# این workflow یک APK واقعی می‌سازد که «خودِ فایل‌های وب» داخلش بسته‌بندی شده‌اند
+# (Capacitor با webDir=www) — TWA نیست و آدرس سایت را باز نمی‌کند،
+# پس روی گوشی بدون اینترنت هم کار می‌کند و به site_url وابسته نیست.
+#
+# کِی اجرا می‌شود؟
+#   1) هر push روی شاخهٔ main  → APK ساخته + به ریلیز «v2-debug» پیوست می‌شود.
+#   2) دستی: تب Actions → این workflow → Run workflow  (با گزینه‌ها).
+#
+# رایگان بودن: روی ریپوی Public دقیقه‌های Actions نامحدود/رایگان است؛
+# روی Private ماهی ۲۰۰۰ دقیقه (پلن Free). Release و Artifact هم رایگان‌اند.
+#
+# اگر بیلد شکست خورد: انتهای لاگ روی شاخهٔ build-logs در فایل
+# build-logs/latest-failure.md گذاشته می‌شود (لاگ کامل هم در تب Actions هست).
+# ─────────────────────────────────────────────────────────────────────────────
+
+on:
+  workflow_dispatch:
+    inputs:
+      release_tag:
+        description: "تگ ریلیزی که APK به آن پیوست می‌شود"
+        required: false
+        default: "v2-debug"
+        type: string
+      publish_release:
+        description: "APK را به‌عنوان GitHub Release هم منتشر کن (خاموش = فقط Artifact)"
+        type: boolean
+        default: true
+      apk_flavor:
+        description: "نوع بسته (bundled = فایل‌ها داخل APK)"
+        required: false
+        default: "bundled"
+        type: choice
+        options:
+          - bundled
+  push:
+    branches:
+      - main
+
+permissions:
+  contents: write
+  actions: read
+
+concurrency:
+  group: fetros-apk-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  APP_VERSION: "2.0.0"
+  APP_NAME: "فطرس"
+  PACKAGE_ID: "ir.fetros.app"
+  ANDROID_COMPILE_SDK: "34"
+  BUILD_LOG: "build.log"
+
+jobs:
+  apk:
+    name: Capacitor debug APK (وب‌فایل‌ها داخل بسته)
+    runs-on: ubuntu-latest
+    timeout-minutes: 35
+    env:
+      LOG: ${{ runner.temp }}/build.log
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 1
+          persist-credentials: true
+
+      - name: Set up Node 20
+        uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+          cache: npm
+
+      - name: Set up JDK 17 (Capacitor 6 = Java 17)
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: "17"
+          cache: gradle
+
+      - name: "پیش‌بررسی محیط بیلد"
+        run: |
+          : > "$LOG"
+          {
+            echo "═══ preflight ═══"
+            echo "os: $(lsb_release -ds 2>/dev/null || uname -a)"
+            node -v; npm -v; java -version 2>&1 | head -3
+            echo "ANDROID_HOME=${ANDROID_HOME:-not-set}"
+            echo "gradle user home: $HOME/.gradle"
+            df -h "$RUNNER_TEMP" | tail -1
+            git rev-parse --short HEAD
+          } 2>&1 | tee -a "$LOG"
+
+      - name: Android SDK — پذیرش لایسنس و پلتفرم لازم
+        run: |
+          set -o pipefail
+          {
+            echo "═══ android sdk ═══"
+            SDKM=""
+            for c in "$ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager" "$(command -v sdkmanager || true)"; do
+              [ -n "$c" ] && [ -x "$c" ] && SDKM="$c" && break
+            done
+            if [ -n "$SDKM" ]; then
+              yes | "$SDKM" --licenses >/dev/null 2>&1 || true
+              "$SDKM" --install "platform-tools" "platforms;android-${ANDROID_COMPILE_SDK}" "build-tools;${ANDROID_COMPILE_SDK}.0.0" 2>&1 | tail -5 || true
+            else
+              echo "sdkmanager پیدا نشد — ادامه می‌دهیم؛ AGP در صورت نیاز خودش دانلود می‌کند"
+            fi
+            ls "${ANDROID_HOME}/platforms" 2>/dev/null || true
+            ls "${ANDROID_HOME}/build-tools" 2>/dev/null || true
+            echo "done"
+          } 2>&1 | tee -a "$LOG"
+
+      - name: "نصب وابستگی‌ها (فقط ابزار بسته‌بندی — Capacitor)"
+        run: |
+          set -o pipefail
+          { echo "═══ npm ci ═══"; npm ci --no-audit --no-fund; } 2>&1 | tee -a "$LOG"
+
+      - name: "آزمون‌های واحد — دروازهٔ کیفیت قبل از بسته‌بندی"
+        run: |
+          set -o pipefail
+          {
+            echo "═══ unit tests ═══"
+            node tests/run.mjs | tail -3
+            node tests/sw.mjs  | tail -3
+          } 2>&1 | tee -a "$LOG"
+
+      - name: "آماده‌سازی www/ (کپی فایل‌های وب + بررسی یکپارچگی ارجاع‌ها)"
+        run: |
+          set -o pipefail
+          { echo "═══ stage www ═══"; node scripts/build-www.mjs; ls -la www; } 2>&1 | tee -a "$LOG"
+
+      - name: افزودن پلتفرم اندروید و sync
+        run: |
+          set -o pipefail
+          {
+            echo "═══ cap add + sync ═══"
+            npx cap add android
+            npx cap sync android
+            npx cap doctor || true
+          } 2>&1 | tee -a "$LOG"
+
+      - name: "اعمال آیکون و اسپلش برند فطرس (native/android/res → android)"
+        run: |
+          set -o pipefail
+          {
+            echo "═══ brand assets ═══"
+            node scripts/apply-android-assets.mjs
+            ls -la android/app/src/main/res/mipmap-xxxhdpi
+            grep -h "ic_launcher_background" android/app/src/main/res/values/ic_launcher_background.xml
+          } 2>&1 | tee -a "$LOG"
+
+      - name: "تأیید اینکه فایل‌ها داخل پروژهٔ اندروید کپی شده‌اند (آفلاین‌بودن)"
+        run: |
+          set -o pipefail
+          {
+            echo "═══ offline bundle gate ═══"
+            PUB=android/app/src/main/assets/public
+            for f in index.html style.css script.js manifest.json offline.html data/occasions.js icons/icon.svg; do
+              if [ ! -s "$PUB/$f" ]; then echo "MISSING IN APK ASSETS: $PUB/$f"; exit 1; fi
+              echo "  ok  $f"
+            done
+            ls -la "$PUB" | head -20
+            for f in mipmap-xxxhdpi/ic_launcher.png mipmap-xxxhdpi/ic_launcher_foreground.png drawable/splash.png; do
+              if [ ! -s "android/app/src/main/res/$f" ]; then echo "MISSING BRAND RES: $f"; exit 1; fi
+            done
+            grep -nE 'applicationId|versionCode|versionName' android/app/build.gradle
+            if grep -q '"url"[[:space:]]*:' capacitor.config.json; then
+              echo "capacitor.config.json سرور راه‌دور دارد؛ باید حذف شود تا APK آفلاین بماند"; exit 1
+            fi
+            echo "ok: هیچ server.url در capacitor.config.json نیست (پس TWA نیستیم)"
+          } 2>&1 | tee -a "$LOG"
+
+      - name: "درج شمارهٔ بیلد در versionName"
+        run: |
+          set -o pipefail
+          {
+            echo "═══ version ═══"
+            sed -i -E "s|^([[:space:]]*versionName)[[:space:]]+\".*\"|\1 \"${APP_VERSION}-build${GITHUB_RUN_NUMBER}\"|" android/app/build.gradle
+            grep -nE 'versionCode|versionName' android/app/build.gradle
+          } 2>&1 | tee -a "$LOG"
+
+      - name: "ساخت APK — ./gradlew assembleDebug"
+        working-directory: android
+        run: |
+          set -o pipefail
+          {
+            echo "═══ gradle assembleDebug ═══"
+            chmod +x ./gradlew
+            ./gradlew --no-daemon --stacktrace --warning-mode=summary assembleDebug
+          } 2>&1 | tee -a "$LOG"
+
+      - name: "جمع‌آوری APK و محاسبهٔ checksum"
+        run: |
+          set -euo pipefail
+          {
+            echo "═══ collect ═══"
+            APK="$(find android/app/build/outputs/apk -name '*.apk' -type f | sort | head -1)"
+            if [ -z "$APK" ] || [ ! -s "$APK" ]; then echo "هیچ APK در خروجی Gradle پیدا نشد"; exit 1; fi
+            mkdir -p out
+            cp "$APK" out/fetros-debug.apk
+            ( cd out && sha256sum fetros-debug.apk > checksum.txt && cat checksum.txt )
+            ls -la out
+            echo "APK_PATH=out/fetros-debug.apk" >> "$GITHUB_ENV"
+            echo "APK_SIZE_KB=$(du -k out/fetros-debug.apk | cut -f1)" >> "$GITHUB_ENV"
+            echo "APK_SHA256=$(cut -d' ' -f1 out/checksum.txt)" >> "$GITHUB_ENV"
+            echo "APK_SOURCE=$APK" >> "$GITHUB_ENV"
+            "$ANDROID_HOME/build-tools/${ANDROID_COMPILE_SDK}.0.0/aapt2" dump badging out/fetros-debug.apk 2>/dev/null | grep -E "^(package:|application-label|sdkVersion|targetSdkVersion|launchable-activity)" || true
+          } 2>&1 | tee -a "$LOG"
+
+      - name: "انتشار Artifact با نام fetros-debug.apk"
+        uses: actions/upload-artifact@v4
+        with:
+          name: fetros-debug.apk
+          path: |
+            out/fetros-debug.apk
+            out/checksum.txt
+          if-no-files-found: error
+          retention-days: 90
+
+      - name: "انتشار GitHub Release (APK مستقیم قابل دانلود)"
+        env:
+          GH_TOKEN: ${{ github.token }}
+          REL_TAG: ${{ github.event.inputs.release_tag || 'v2-debug' }}
+          PUBLISH: ${{ github.event.inputs.publish_release || 'true' }}
+          TITLE: "فطرس v2 — APK دیباگ (اندروید)"
+        run: |
+          set -o pipefail
+          { echo "═══ release ═══"; bash .github/scripts/publish-release.sh; } 2>&1 | tee -a "$LOG"
+
+      - name: "خلاصهٔ بیلد"
+        if: always()
+        run: |
+          {
+            echo "## فطرس · بیلد APK (فایل‌های وب داخل بسته)"
+            echo
+            echo "| مورد | مقدار |"
+            echo "|---|---|"
+            echo "| رویداد | \`${{ github.event_name }}\` |"
+            echo "| شاخه/تگ | \`${{ github.ref_name }}\` |"
+            echo "| کامیت | \`${GITHUB_SHA:0:7}\` |"
+            echo "| بیلد شماره | ${{ github.run_number }} |"
+            if [ -s out/fetros-debug.apk ]; then
+              echo "| APK | \`fetros-debug.apk\` · $(du -k out/fetros-debug.apk | cut -f1) KB |"
+              echo "| SHA-256 | \`$(cut -d' ' -f1 out/checksum.txt 2>/dev/null)\` |"
+            else
+              echo "| APK | ساخته نشد — لاگ همین job را ببینید |"
+            fi
+            echo "| نتیجهٔ job | ${{ job.status }} |"
+            echo
+            echo "**دانلود:** صفحهٔ Releases → تگ \`v2-debug\` → \`fetros-debug.apk\` (بدون zip)"
+            echo
+            echo " Artifact همان فایل در این job است: **Artifacts → \`fetros-debug.apk\`**"
+          } >> "$GITHUB_STEP_SUMMARY"
+
+      - name: "گزارش خودکار خطا (برای اینکه بدون باز کردن Actions هم شود فهمید چرا)"
+        if: failure()
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
+        run: bash .github/scripts/report-failure.sh

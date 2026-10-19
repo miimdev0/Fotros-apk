@@ -1,0 +1,26 @@
+{
+  "appId": "ir.fetros.app",
+  "appName": "فطرس",
+  "webDir": "www",
+  "backgroundColor": "#101114",
+  "android": {
+    "allowMixedContent": false,
+    "backgroundColor": "#101114",
+    "captureInput": false,
+    "webContentsDebuggingEnabled": false
+  },
+  "server": {
+    "androidScheme": "https",
+    "cleartext": false
+  },
+  "plugins": {
+    "SplashScreen": {
+      "launchShowDuration": 600,
+      "launchAutoHide": true,
+      "backgroundColor": "#101114",
+      "androidSplashResourceName": "splash",
+      "androidScaleType": "CENTER_CROP",
+      "showSpinner": false
+    }
+  }
+}

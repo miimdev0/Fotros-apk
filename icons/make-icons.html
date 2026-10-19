@@ -1,0 +1,109 @@
+<!doctype html>
+<html lang="fa" dir="rtl">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>ساخت آیکون‌های فطرس — FETROS Icon Builder</title>
+<style>
+  :root{--bg:#0f1114;--card:#17191d;--bd:rgba(255,255,255,.10);--gold:#F5C451;--oran:#FF7A35;--mut:#92949D;--r:16px}
+  *{box-sizing:border-box} body{margin:0;background:radial-gradient(900px 500px at 50% 0%, #1e2127 0%, #0f1114 60%);color:#FFF8EA;font-family:system-ui,Tahoma,sans-serif;padding:18px;line-height:1.8}
+  h1{font-size:18px;margin:0 0 6px} p{color:var(--mut);font-size:13px;margin:0 0 14px}
+  .grid{display:grid;grid-template-columns:1fr;gap:12px;max-width:700px;margin:0 auto}
+  @media(min-width:700px){.grid{grid-template-columns:1fr 1fr}}
+  .card{background:rgba(255,255,255,.05);border:1px solid var(--bd);border-radius:16px;padding:14px}
+  canvas{width:100%;height:auto;border-radius:12px;background:#101114;border:1px solid var(--bd)}
+  .row{display:flex;gap:8px;flex-wrap:wrap;margin-top:10px}
+  button{appearance:none;border:none;border-radius:999px;padding:9px 14px;font-weight:700;cursor:pointer;background:linear-gradient(135deg,var(--gold),var(--oran));color:#1a1200}
+  button.secondary{background:rgba(255,255,255,.08);color:#FFF8EA;border:1px solid var(--bd)}
+  .hint{background:rgba(245,196,81,.10);border:1px solid rgba(245,196,81,.25);border-radius:12px;padding:10px 12px;font-size:12px;color:#FFE9B0;margin:12px auto 0;max-width:700px}
+  a{color:var(--gold)}
+</style>
+</head>
+<body>
+<h1 style="text-align:center">ساخت PNGهای آیکون فطرس</h1>
+<p style="text-align:center">این صفحه SVGها را روی Canvas رسم می‌کند و دکمهٔ دانلود PNG می‌دهد — بدون نیاز به ابزار جانبی. روی گوشی هم کار می‌کند.</p>
+
+<div class="grid">
+  <div class="card">
+    <div style="font-weight:700;font-size:13px;margin-bottom:8px">icon-512.png (any)</div>
+    <canvas id="c512" width="512" height="512"></canvas>
+    <div class="row"><button id="d512">دانلود icon-512.png</button></div>
+  </div>
+  <div class="card">
+    <div style="font-weight:700;font-size:13px;margin-bottom:8px">icon-192.png (any)</div>
+    <canvas id="c192" width="192" height="192"></canvas>
+    <div class="row"><button id="d192">دانلود icon-192.png</button></div>
+  </div>
+  <div class="card">
+    <div style="font-weight:700;font-size:13px;margin-bottom:8px">icon-maskable-512.png</div>
+    <canvas id="cmask" width="512" height="512"></canvas>
+    <div class="row"><button id="dmask">دانلود icon-maskable-512.png</button></div>
+  </div>
+  <div class="card">
+    <div style="font-weight:700;font-size:13px;margin-bottom:8px">پیش‌نمایش maskable با راهنمای safe zone</div>
+    <canvas id="cprev" width="512" height="512"></canvas>
+    <div class="row"><button class="secondary" id="dall">دانلود هر سه با هم</button></div>
+  </div>
+</div>
+
+<div class="hint">راهنما: بعد از دانلود، فایل‌ها را با «Files» گوشی به پوشهٔ <code>icons/</code> کنار <code>index.html</code> منتقل کنید و نام‌ها را دقیق نگه دارید. سپس صفحه را یک‌بار Refresh کنید تا آیکون نصب PWA درست شود.</div>
+
+<script>
+const svgAny = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" role="img" aria-label="FETROS icon"> <defs> <linearGradient id="g" x1="0%" y1="15%" x2="100%" y2="85%"> <stop offset="0%" stop-color="#F5C451"/> <stop offset="55%" stop-color="#FF9A2E"/> <stop offset="100%" stop-color="#FF7A35"/> </linearGradient> <radialGradient id="glow" cx="50%" cy="58%" r="55%"> <stop offset="0%" stop-color="#F5C451" stop-opacity="0.22"/> <stop offset="45%" stop-color="#FF7A35" stop-opacity="0.12"/> <stop offset="100%" stop-color="#101114" stop-opacity="0"/> </radialGradient> <linearGradient id="rim" x1="0%" y1="0%" x2="0%" y2="100%"> <stop offset="0%" stop-color="rgba(255,255,255,0.18)"/> <stop offset="100%" stop-color="rgba(255,255,255,0.03)"/> </linearGradient> </defs> <!-- base rounded square --> <rect width="512" height="512" rx="116" fill="#101114"/> <rect x="1.5" y="1.5" width="509" height="509" rx="114.5" fill="none" stroke="url(#rim)" stroke-width="3"/> <!-- warm glow --> <circle cx="256" cy="268" r="210" fill="url(#glow)"/> <!-- top light --> <ellipse cx="256" cy="118" rx="190" ry="42" fill="white" opacity="0.06"/> <!-- SUN ARC (bold sunrise) --> <path d="M 84 296 A 172 172 0 0 1 428 296" fill="none" stroke="url(#g)" stroke-width="24" stroke-linecap="round" opacity="1"/> <!-- inner highlight on arc --> <path d="M 106 292 A 150 150 0 0 1 406 292" fill="none" stroke="white" stroke-width="2.6" stroke-linecap="round" opacity="0.18"/> <!-- SUN disc --> <circle cx="256" cy="184" r="52" fill="url(#g)"/> <circle cx="256" cy="184" r="52" fill="none" stroke="white" stroke-width="1.6" opacity="0.42"/> <!-- sun rays (subtle) --> <g stroke="url(#g)" stroke-linecap="round" opacity="0.9"> <line x1="256" y1="102" x2="256" y2="118" stroke-width="4"/> <line x1="202" y1="118" x2="212" y2="130" stroke-width="3.5"/> <line x1="310" y1="118" x2="300" y2="130" stroke-width="3.5"/> <line x1="168" y1="150" x2="182" y2="158" stroke-width="3"/> <line x1="344" y1="150" x2="330" y2="158" stroke-width="3"/> </g> <!-- CRESCENT (stylized, elegant) --> <path d="M 256 238 C 286 238 312 258 318 286 C 304 278 288 274 271 275 C 236 276.5 210 304 212 338 C 213.5 354 221 368 232 378 C 188 370 158 326 168 280 C 172 258 184 242 202 232 C 218 238 237 238 256 238 Z" fill="#FFF8EA" opacity="0.98"/> <path d="M 256 242 C 277 242 295 252 305 268 C 298 265 290 263 281 263 C 252 264 229 287 230 316 C 230.5 324 232.5 331 236 337 C 203 327 182 294 188 260 C 191 250 197 241 205 234 C 221 239 238 242 256 242 Z" fill="white" opacity="0.0"/> <!-- horizon calendar grid --> <g opacity="1"> <rect x="112" y="378" width="288" height="48" rx="14" fill="rgba(255,248,234,0.10)" stroke="rgba(255,255,255,0.17)" stroke-width="1.4"/> <line x1="118" y1="394" x2="394" y2="394" stroke="rgba(255,255,255,0.16)" stroke-width="1.2"/> <line x1="155" y1="382" x2="155" y2="422" stroke="rgba(255,255,255,0.12)" stroke-width="1"/> <line x1="205" y1="382" x2="205" y2="422" stroke="rgba(255,255,255,0.12)" stroke-width="1"/> <line x1="256" y1="382" x2="256" y2="422" stroke="rgba(255,255,255,0.12)" stroke-width="1"/> <line x1="307" y1="382" x2="307" y2="422" stroke="rgba(255,255,255,0.12)" stroke-width="1"/> <line x1="357" y1="382" x2="357" y2="422" stroke="rgba(255,255,255,0.12)" stroke-width="1"/> <!-- active day dot --> <circle cx="256" cy="410" r="7.4" fill="url(#g)"/> </g> <!-- subtle bottom reflection --> <ellipse cx="256" cy="432" rx="120" ry="10" fill="white" opacity="0.04"/></svg>`;
+
+const svgMask = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" role="img" aria-label="FETROS maskable icon"> <rect width="512" height="512" fill="#101114"/> <g transform="translate(46.08,46.08) scale(0.82)"> <defs> <linearGradient id="g" x1="0%" y1="15%" x2="100%" y2="85%"> <stop offset="0%" stop-color="#F5C451"/> <stop offset="55%" stop-color="#FF9A2E"/> <stop offset="100%" stop-color="#FF7A35"/> </linearGradient> <radialGradient id="glow" cx="50%" cy="58%" r="55%"> <stop offset="0%" stop-color="#F5C451" stop-opacity="0.22"/> <stop offset="45%" stop-color="#FF7A35" stop-opacity="0.12"/> <stop offset="100%" stop-color="#101114" stop-opacity="0"/> </radialGradient> <linearGradient id="rim" x1="0%" y1="0%" x2="0%" y2="100%"> <stop offset="0%" stop-color="rgba(255,255,255,0.18)"/> <stop offset="100%" stop-color="rgba(255,255,255,0.03)"/> </linearGradient> </defs> <!-- warm glow --> <circle cx="256" cy="268" r="210" fill="url(#glow)"/> <!-- top light --> <ellipse cx="256" cy="118" rx="190" ry="42" fill="white" opacity="0.06"/> <!-- SUN ARC (bold sunrise) --> <path d="M 84 296 A 172 172 0 0 1 428 296" fill="none" stroke="url(#g)" stroke-width="24" stroke-linecap="round" opacity="1"/> <!-- inner highlight on arc --> <path d="M 106 292 A 150 150 0 0 1 406 292" fill="none" stroke="white" stroke-width="2.6" stroke-linecap="round" opacity="0.18"/> <!-- SUN disc --> <circle cx="256" cy="184" r="52" fill="url(#g)"/> <circle cx="256" cy="184" r="52" fill="none" stroke="white" stroke-width="1.6" opacity="0.42"/> <!-- sun rays (subtle) --> <g stroke="url(#g)" stroke-linecap="round" opacity="0.9"> <line x1="256" y1="102" x2="256" y2="118" stroke-width="4"/> <line x1="202" y1="118" x2="212" y2="130" stroke-width="3.5"/> <line x1="310" y1="118" x2="300" y2="130" stroke-width="3.5"/> <line x1="168" y1="150" x2="182" y2="158" stroke-width="3"/> <line x1="344" y1="150" x2="330" y2="158" stroke-width="3"/> </g> <!-- CRESCENT (stylized, elegant) --> <path d="M 256 238 C 286 238 312 258 318 286 C 304 278 288 274 271 275 C 236 276.5 210 304 212 338 C 213.5 354 221 368 232 378 C 188 370 158 326 168 280 C 172 258 184 242 202 232 C 218 238 237 238 256 238 Z" fill="#FFF8EA" opacity="0.98"/> <path d="M 256 242 C 277 242 295 252 305 268 C 298 265 290 263 281 263 C 252 264 229 287 230 316 C 230.5 324 232.5 331 236 337 C 203 327 182 294 188 260 C 191 250 197 241 205 234 C 221 239 238 242 256 242 Z" fill="white" opacity="0.0"/> <!-- horizon calendar grid --> <g opacity="1"> <rect x="112" y="378" width="288" height="48" rx="14" fill="rgba(255,248,234,0.10)" stroke="rgba(255,255,255,0.17)" stroke-width="1.4"/> <line x1="118" y1="394" x2="394" y2="394" stroke="rgba(255,255,255,0.16)" stroke-width="1.2"/> <line x1="155" y1="382" x2="155" y2="422" stroke="rgba(255,255,255,0.12)" stroke-width="1"/> <line x1="205" y1="382" x2="205" y2="422" stroke="rgba(255,255,255,0.12)" stroke-width="1"/> <line x1="256" y1="382" x2="256" y2="422" stroke="rgba(255,255,255,0.12)" stroke-width="1"/> <line x1="307" y1="382" x2="307" y2="422" stroke="rgba(255,255,255,0.12)" stroke-width="1"/> <line x1="357" y1="382" x2="357" y2="422" stroke="rgba(255,255,255,0.12)" stroke-width="1"/> <!-- active day dot --> <circle cx="256" cy="410" r="7.4" fill="url(#g)"/> </g> <!-- subtle bottom reflection --> <ellipse cx="256" cy="432" rx="120" ry="10" fill="white" opacity="0.04"/> </g></svg>`;
+
+function svgToImg(svgText){
+  return new Promise((res,rej)=>{
+    const blob = new Blob([svgText], {type:"image/svg+xml;charset=utf-8"});
+    const url = URL.createObjectURL(blob);
+    const img = new Image();
+    img.onload = ()=>{ URL.revokeObjectURL(url); res(img); };
+    img.onerror = (e)=>{ URL.revokeObjectURL(url); rej(e); };
+    img.src = url;
+  });
+}
+async function draw(svgText, canvas){
+  const ctx = canvas.getContext("2d");
+  const img = await svgToImg(svgText);
+  ctx.clearRect(0,0,canvas.width,canvas.height);
+  ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+}
+function downloadCanvas(canvas, filename){
+  const a = document.createElement("a");
+  a.download = filename;
+  a.href = canvas.toDataURL("image/png");
+  a.click();
+}
+(async()=>{
+  await draw(svgAny, document.getElementById("c512"));
+  await draw(svgAny, document.getElementById("c192"));
+  await draw(svgMask, document.getElementById("cmask"));
+  // preview with safe zone overlay
+  await draw(svgMask, document.getElementById("cprev"));
+  const pctx = document.getElementById("cprev").getContext("2d");
+  pctx.strokeStyle = "rgba(255,255,255,0.55)";
+  pctx.setLineDash([8,8]);
+  pctx.lineWidth = 2;
+  const m=51.2; // 10% margin each side = 80% safe zone
+  // safe zone rect
+  pctx.strokeRect(m,m,512-m*2,512-m*2);
+  pctx.fillStyle="rgba(245,196,81,0.10)";
+  pctx.fillRect(m,m,512-m*2,512-m*2);
+  pctx.setLineDash([]);
+  pctx.fillStyle="white";
+  pctx.font="12px system-ui";
+  pctx.fillText("safe zone 80%", m+8, m+16);
+})();
+
+document.getElementById("d512").onclick=()=>downloadCanvas(document.getElementById("c512"),"icon-512.png");
+document.getElementById("d192").onclick=()=>downloadCanvas(document.getElementById("c192"),"icon-192.png");
+document.getElementById("dmask").onclick=()=>downloadCanvas(document.getElementById("cmask"),"icon-maskable-512.png");
+document.getElementById("dall").onclick=()=>{
+  downloadCanvas(document.getElementById("c512"),"icon-512.png");
+  setTimeout(()=>downloadCanvas(document.getElementById("c192"),"icon-192.png"),300);
+  setTimeout(()=>downloadCanvas(document.getElementById("cmask"),"icon-maskable-512.png"),600);
+};
+</script>
+</body>
+</html>
