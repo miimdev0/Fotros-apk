@@ -217,13 +217,55 @@ jobs:
             if [ -z "$APK" ] || [ ! -s "$APK" ]; then echo "هیچ APK در خروجی Gradle پیدا نشد"; exit 1; fi
             mkdir -p out
             cp "$APK" out/fetros-debug.apk
-            ( cd out && sha256sum fetros-debug.apk > checksum.txt && cat checksum.txt )
+            ( cd out && sha256sum fetros-debug.apk > checksum.txt && cp checksum.txt fetros-debug.apk.sha256.txt && cat checksum.txt )
             ls -la out
             echo "APK_PATH=out/fetros-debug.apk" >> "$GITHUB_ENV"
             echo "APK_SIZE_KB=$(du -k out/fetros-debug.apk | cut -f1)" >> "$GITHUB_ENV"
             echo "APK_SHA256=$(cut -d' ' -f1 out/checksum.txt)" >> "$GITHUB_ENV"
             echo "APK_SOURCE=$APK" >> "$GITHUB_ENV"
             "$ANDROID_HOME/build-tools/${ANDROID_COMPILE_SDK}.0.0/aapt2" dump badging out/fetros-debug.apk 2>/dev/null | grep -E "^(package:|application-label|sdkVersion|targetSdkVersion|launchable-activity)" || true
+          } 2>&1 | tee -a "$LOG"
+
+      - name: "بازکردن APK و تأیید اینکه فایل‌های وب داخل بسته‌اند"
+        run: |
+          set -o pipefail
+          {
+            echo "═══ apk contents ═══"
+            unzip -l out/fetros-debug.apk > /tmp/apk-list.txt || true
+            echo "تعداد خطوط فهرست APK: $(grep -c . /tmp/apk-list.txt)"
+            FAILED=0
+            for need in classes.dex AndroidManifest.xml resources.arsc \
+                        assets/public/index.html assets/public/style.css assets/public/script.js \
+                        assets/public/manifest.json assets/public/offline.html \
+                        assets/public/data/occasions.js assets/public/icons/icon-512.png \
+                        assets/public/icons/icon-maskable-512.png assets/public/sw.js; do
+              if grep -q "$need" /tmp/apk-list.txt; then
+                echo "  ✓ $need"
+              else
+                echo "  ✗ $need ← داخل APK نیست!"
+                FAILED=1
+              fi
+            done
+            echo "── حجم فایل‌های وب داخل بسته ──"
+            grep -E "assets/public/(index\.html|style\.css|script\.js|data/occasions\.js)$" /tmp/apk-list.txt | awk '{print "   " $1 " B  " $4}' || true
+            echo "── منابع بصری داخل بسته (نمونه) ──"
+            grep -E "res/(mipmap|drawable)" /tmp/apk-list.txt | head -8 || true
+            if unzip -p out/fetros-debug.apk assets/capacitor.config.json 2>/dev/null | grep -qE '"url"[[:space:]]*:[[:space:]]*"http'; then
+              echo "  ✗ پیکربندی داخل بسته به آدرس راه‌دور اشاره می‌کند (TWA شده‌ایم!)"
+              FAILED=1
+            else
+              echo "  ✓ بدون server.url — بسته خودکفا است و آفلاین باز می‌شود"
+            fi
+            if [ "$FAILED" = "1" ]; then echo "بررسی محتوای APK ناموفق بود"; exit 1; fi
+            {
+              echo "### ✅ محتوای APK تأیید شد"
+              echo
+              echo "index.html و style.css و script.js و manifest.json و offline.html و data/occasions.js و آیکون‌ها **داخل** \`assets/public\` بسته‌اند؛ پس برنامه بدون اینترنت باز می‌شود."
+              echo
+              echo "- حجم APK: $(du -h out/fetros-debug.apk | cut -f1)"
+              echo "- sha256: \`$(cut -d' ' -f1 out/checksum.txt)\`"
+              echo "- دانلود مستقیم: <${GITHUB_SERVER_URL}/${GITHUB_REPOSITORY}/releases/download/v2-debug/fetros-debug.apk>"
+            } >> "$GITHUB_STEP_SUMMARY"
           } 2>&1 | tee -a "$LOG"
 
       - name: "انتشار Artifact با نام fetros-debug.apk"
@@ -233,6 +275,7 @@ jobs:
           path: |
             out/fetros-debug.apk
             out/checksum.txt
+            out/fetros-debug.apk.sha256.txt
           if-no-files-found: error
           retention-days: 90
 
