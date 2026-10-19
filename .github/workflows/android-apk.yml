@@ -52,7 +52,6 @@ env:
   APP_NAME: "فطرس"
   PACKAGE_ID: "ir.fetros.app"
   ANDROID_COMPILE_SDK: "34"
-  BUILD_LOG: "build.log"
 
 jobs:
   apk:
@@ -60,7 +59,8 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 35
     env:
-      LOG: ${{ runner.temp }}/build.log
+      # مسیر مطلق و ثابت؛ context «runner» در env سطح job مجاز نیست
+      LOG: /tmp/fetros-build.log
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -198,7 +198,7 @@ jobs:
           set -euo pipefail
           {
             echo "═══ collect ═══"
-            APK="$(find android/app/build/outputs/apk -name '*.apk' -type f | sort | head -1)"
+            APK="$(find android/app/build/outputs/apk -name '*.apk' -type f 2>/dev/null | sort | head -1 || true)"
             if [ -z "$APK" ] || [ ! -s "$APK" ]; then echo "هیچ APK در خروجی Gradle پیدا نشد"; exit 1; fi
             mkdir -p out
             cp "$APK" out/fetros-debug.apk
@@ -253,7 +253,7 @@ jobs:
             echo
             echo "**دانلود:** صفحهٔ Releases → تگ \`v2-debug\` → \`fetros-debug.apk\` (بدون zip)"
             echo
-            echo " Artifact همان فایل در این job است: **Artifacts → \`fetros-debug.apk\`**"
+            echo "همین فایل به‌عنوان Artifact این job هم نگه داشته شده: **Artifacts → \`fetros-debug.apk\`**"
           } >> "$GITHUB_STEP_SUMMARY"
 
       - name: "گزارش خودکار خطا (برای اینکه بدون باز کردن Actions هم شود فهمید چرا)"
