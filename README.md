@@ -16,7 +16,7 @@
 |---|---|
 | فایل‌های کد | ✅ کامل و واقعی — هیچ `TODO`، هیچ «بقیه را خودتان بنویسید»، هیچ شبه‌کد ندارد |
 | آزمون موتور (تقویم/اوقات/قبله/اعتبارسنجی) | ✅ اجرا شد: **۶۷ بررسی، همه PASS** (`node tests/run.mjs`) |
-| آزمون DOM/CSS/UX (jsdom) | ✅ اجرا شد: **۱۰۲ بررسی، همه PASS** (`node tests/dom.mjs`) |
+| آزمون DOM/CSS/UX (jsdom) | ✅ اجرا شد: **۱۰۶ بررسی، همه PASS** (`node tests/dom.mjs`) |
 | آزمون منطق Service Worker | ✅ اجرا شد: **۱۴ بررسی، همه PASS** (`node tests/sw.mjs`) |
 | تست روی گوشی واقعی / Chrome / Lighthouse | ⚠️ **اینجا ممکن نبود** (مرورگر گرافیکی در این محیط نیست) — چک‌لیست بخش ۹ را خودتان روی گوشی اجرا کنید |
 | فایل `fonts/Rokh.ttf` | ⛔ عمداً گذاشته نشده — خودتان اضافه می‌کنید؛ نبودش هیچ خطایی نمی‌دهد |
@@ -37,9 +37,16 @@ fetros/  (همین ریپو)
 ├── sw.js                   ← کش نسخه‌دار + SWR + fallback آفلاین + جریان «نسخه جدید»
 ├── offline.html            ← صفحهٔ آفلاین
 ├── README.md               ← همین فایل
-├── capacitor.config.json   ← آماده‌سازی بسته‌بندی بومی (اختیاری)
-├── .gitignore
-├── .github/workflows/android-apk.yml  ← ساخت APK رایگان در ابر (GitHub Actions + Bubblewrap TWA)
+├── capacitor.config.json   ← پیکربندی بسته‌بندی بومی (webDir: www — بدون هیچ سرور راه‌دور)
+├── package.json            ← فقط ابزار بسته‌بندی (Capacitor 6)؛ برای اجرای وب لازم نیست
+├── package-lock.json       ← قفل نسخه‌ها تا `npm ci` در CI قطعی باشد
+├── .gitignore              ← android/ و www/ کامیت نمی‌شوند (هر بار باز تولید می‌شوند)
+├── scripts/
+│   ├── build-www.mjs       ← کپی فایل‌های وب به www/ + بررسی ارجاع‌های شکسته (دروازهٔ بسته‌بندی)
+│   └── apply-android-assets.mjs ← نشاندن آیکون/اسپلش برند روی پروژهٔ اندروید
+├── native/android/res/     ← mipmapها و splash.png برند فطرس (۲۷ فایل، از icons/icon.svg رستری شده)
+├── .github/workflows/android-apk.yml  ← بیلد APK در ابر (Capacitor؛ وب‌فایل‌ها داخل بسته) + Release
+├── .github/scripts/publish-release.sh ← پیوست APK به GitHub Release با تگ v2-debug
 ├── fonts/
 │   ├── README.txt          ← راهنمای گذاشتن Rokh.ttf با گوشی
 │   └── Rokh.ttf            ← ⬅ فایل را خودتان اینجا می‌گذارید
@@ -55,7 +62,7 @@ fetros/  (همین ریپو)
 │   └── make-icons.html     ← اگر خواستید PNGها را دوباره/با کیفیت دیگر بسازید (بدون ابزار)
 └── tests/
     ├── run.mjs   ← ۶۷ بررسی موتور (تقویم، اوقات، قبله، schema)
-    ├── dom.mjs   ← ۱۰۲ بررسی رابط/UX با jsdom
+    ├── dom.mjs   ← ۱۰۶ بررسی رابط/UX با jsdom
     └── sw.mjs    ← ۱۴ بررسی منطق سرویس‌ورکر
 ```
 
@@ -243,69 +250,106 @@ PNGهای حاضر در ریپو را هم همین طراحی تولید کرد
 node tests/run.mjs     # ۶۷ بررسی موتور
 node tests/sw.mjs      # ۱۴ بررسی منطق سرویس‌ورکر
 npm i jsdom            # فقط برای تست DOM (اختیاری)
-node tests/dom.mjs     # ۱۰۲ بررسی رابط/کاربری
+node tests/dom.mjs     # ۱۰۶ بررسی رابط/کاربری
 ```
 در مرورگر: `…/index.html#test` (یا `?test=1`) → ۴۶ آزمون روی صفحه.
 
 ---
 
-## ۱۰) ساخت APK — راهنمای واقع‌بینانهٔ رایگان با گوشی
+## ۱۰) ساخت APK — بیلد ابریِ رایگان، فایل‌های وب داخلِ بسته
 
-### ۱۰٫۱ اول: یک نصب‌کنندهٔ PWA «APK نیست»
-«Install app» یک میان‌بر مرورگری می‌سازد. APK یعنی یک بستهٔ نصب واقعی — برای اعلان مطمئن،
-ویجت، پخش اذان در پس‌زمینه و آیکون‌های نوتیفیکیشن به آن نیاز دارید.
+### ۱۰٫۱ سه راه، و تفاوت واقعی‌شان
+| راه | چیست | آفلاین؟ | به آدرس سایت نیاز دارد؟ |
+|---|---|---|---|
+| **APK این ریپو (پیش‌فرض)** | پروژهٔ Capacitor که `www/` — همان `index.html`/`style.css`/`script.js`/`manifest.json`/`data/`/`icons/` — **داخل** `assets/public` بسته کپی می‌شود | ✅ کامل، از همان اولین بازکردن | ❌ نه |
+| نصب PWA از Chrome («Install app») | میان‌بر مرورگری + کش Service Worker | ✅ بعد از اولین بازکردن | ✅ HTTPS لازم است |
+| TWA / bubblewrap | کانتینر Chrome که فقط آدرس سایت را باز می‌کند | ⚠️ آفلاین‌بودنش به سایت وابسته است | ✅ لازم است |
 
-### ۱۰٫۲ چه چیزی در ۲۰۲۶-۱۰ واقعاً رایگان است (بررسی‌شده)
-| سرویس | وضعیت | نکته |
+پس APK فطرس «بازکنندهٔ سایت» نیست: در حالت پرواز هم کار می‌کند و اگر GitHub Pages شما
+موقتاً پایین باشد، برنامهٔ نصب‌شده روی گوشی بی‌تأثیر می‌ماند. چون فایل‌ها داخل بسته‌اند،
+`site_url` هم دیگر ورودیِ workflow نیست.
+
+### ۱۰٫۲ خودکارترین راه: یک `git push` روی `main`
+فایل `.github/workflows/android-apk.yml` روی **هر push به شاخهٔ `main`** و همچنین با
+**Run workflow** دستی اجرا می‌شود. کارها (به همین ترتیب):
+
+| # | مرحله | چرا |
 |---|---|---|
-| **GitHub Actions** (ریپوی Public) | ✅ رایگان و نامحدود برای runner استاندرد | بهترین گزینه؛ ۵۰۰MB فضای artifact |
-| GitHub Actions (ریپوی Private) | ⚠️ ۲۰۰۰ دقیقه/ماه روی پلن Free | بعد از آن پولی |
-| **PWABuilder** وب‌سایت | ⚠️ هنوز رایگان، ولی سرویس «Android packaging» (bubblewrap cloud) در اکتبر ۲۰۲۵ **archived** شده | ممکن است بیلد ابری کار نکند؛ روش ۱۰٫۳ مطمئن‌تر است |
-| Ionic Appflow | ❌ از فوریه ۲۰۲۵ به مشتری جدید فروخته نمی‌شود | — |
-| Codemagic / Bitrise / Capgo … | ⚠️ دورهٔ آزمایشی/پلن محدود | رایگانِ پایدارِ «بی‌شرط» ندارند |
-| **Termux روی خود گوشی** | ✅ رایگان (سنگین: ~۱٫۵GB دانلود) | اگر ابر را نخواستید |
+| 1 | `actions/setup-node@v4` با Node 20 و `actions/setup-java@v4` با **JDK 17** | Capacitor 6 با Java 17 می‌سازد (Capacitor 7 و 8 به JDK 21 نیاز دارند؛ برای همین نسخه‌ها قفل شده‌اند) |
+| 2 | `sdkmanager --licenses` و `platforms;android-34` | Android SDK روی `ubuntu-latest` از پیش هست؛ فقط لایسنس و پلتفرم |
+| 3 | `npm ci` | نصب **ابزار بسته‌بندی** (`@capacitor/core`, `@capacitor/cli`, `@capacitor/android` = 6.2.2). خودِ وب‌اپ همچنان بدون بیلد و بدون Node اجرا می‌شود |
+| 4 | `node tests/run.mjs` + `node tests/sw.mjs` | دروازهٔ کیفیت: اگر منطق تقویم/اوقات/سرویس‌ورکر خراب باشد، APK ساخته نمی‌شود |
+| 5 | `node scripts/build-www.mjs` | کپی فایل‌ها به `www/` و بررسی اینکه هیچ `href`/`src`/`url()`/precache شکسته نباشد |
+| 6 | `npx cap add android` و `npx cap sync android` | ساخت پروژهٔ اندروید و کپی `www/` داخل assets |
+| 7 | `node scripts/apply-android-assets.mjs` | نشاندن آیکون‌ها و اسپلش برند فطرس از `native/android/res/` |
+| 8 | `./gradlew --no-daemon assembleDebug` | خودِ APK، با debug keystore پیش‌فرض (مناسب تست روی گوشی خودتان) |
+| 9 | Artifact **`fetros-debug.apk`** و **GitHub Release با تگ `v2-debug`** | دو راه دانلود؛ ریلیز، APK را **بدون zip** مستقیم می‌دهد |
 
-> نتیجهٔ صادقانه: **بله، یک راه کاملاً رایگان وجود دارد — GitHub Actions روی ریپوی Public**
-> (این سرویس‌ها تغییر می‌کنند؛ قبل از اتکا، صفحهٔ قیمت را دوباره چک کنید).
+هزینه: روی ریپوی **Public** دقیقه‌های GitHub Actions رایگان و نامحدود است؛ روی Private
+ماهی ۲۰۰۰ دقیقه (پلن Free). Artifact و Release رایگان‌اند. زمان معمول یک بیلد: چند دقیقه.
 
-### ۱۰٫۳ روش ۱ (پیشنهادی): Bubbles/TWA با GitHub Actions — بدون Android Studio
-فایل `.github/workflows/android-apk.yml` در ریپو آماده است. کارها:
-1. **سایت را منتشر کنید** (بخش ۲ راه ۱). لازم است `manifest.json` و آیکون‌ها روی HTTPS باز شوند.
-2. در GitHub: تب **Actions** → «Build FETROS Android APK» → **Run workflow** →
-   `site_url` را کامل با اسلش انتهایی بگذارید، مثلاً
-   `https://USERNAME.github.io/Fotros-apk/` → Run workflow.
-3. ۳ تا ۸ دقیقه صبر کنید؛ در پایان، **Artifacts → `fetros-android-apk`** را دانلود کنید
-   (داخلش `fetros-debug.apk`).
-4. روی گوشی: فایل را باز کنید → «اجازهٔ نصب از این منبع / Unknown sources» → **Install** → باز کنید.
-5. تست: تقویم، اوقات، ذکر، یادداشت، آفلاین‌بودن (حالت پرواز)، چرخش صفحه، اعلان.
+### ۱۰٫۳ اجرا و دانلود فقط با گوشی — مسیر منوها
+اجرای دستی:
+1. در مرورگر گوشی: `https://github.com/<USERNAME>/Fotros-apk/actions`
+   (در اپ GitHub: ریپو → بخش **Actions**؛ اگر در نوار نبود از منوی **⌄ (More)** یا **Code ▾** → Actions)
+2. سمت چپ (یا منوی کشویی بالا): «Build FETROS Android APK (bundled · offline-ready)»
+3. دکمهٔ سبز **Run workflow** ▸ باز شدن فرم ▸ **Run workflow** — گزینه‌ها را می‌توانید دست‌نخورده بگذارید
+   (`release_tag = v2-debug`، `publish_release` روشن). اگر فقط Artifact می‌خواهید، `publish_release` را خاموش کنید.
+4. روی «Current runs» بزنید و لاگ مرحله‌به‌مرحله را ببینید؛ تا ✅ سبز شدن صبر کنید.
 
-چه می‌سازد؟ یک **TWA** (Trusted Web Activity): همان PWAی شما در کانتینر Chrome، با آیکون و
-اسپلش نیتیو. چون از `assembleDebug` با debug keystore استفاده می‌کند، برای تست روی گوشی خودتان
-کافی است و امضای Play لازم ندارد.
+دانلود APK:
+- **راه اول (روی گوشی راحت‌تر):** ریپو → **Releases** (از منوی **Code ▾** → Releases، یا `…/Fotros-apk/releases`)
+  → «فطرس v2 — APK دیباگ (اندروید)» → زیر **Assets/Licenses** روی `fetros-debug.apk` بزنید.
+- **راه دوم:** در همان صفحهٔ اجرا، پایین صفحه در **Artifacts** → `fetros-debug.apk` (این یکی داخل فایل zip است).
+- **لینک مستقیم** (همیشه به تازه‌ترین بیلد همان تگ اشاره می‌کند):
+  `https://github.com/<USERNAME>/Fotros-apk/releases/download/v2-debug/fetros-debug.apk`
 
-اگر بیلد شکست خورد، معمولاً یکی از اینهاست:
-- `site_url` اشتباه/بدون اسلش انتها → manifest پیدا نمی‌شود.
-- ریپو Private و دقیقه‌ها تمام شده → Public کنید.
-- icon‌ها در manifest گم‌شده‌اند → PNGها را با `icons/make-icons.html` بسازید و کامیت کنید.
-- لاگسنس SDK → در workflow با `sdkmanager --licenses` انجام شده؛ اگر runner عوض شد، دوباره چک کنید.
+### ۱۰٫۴ نصب روی گوشی — «Install unknown apps»
+1. `fetros-debug.apk` را با مرورگرِ **همان گوشی** دانلود کنید (بهترین راه: از صفحهٔ Release).
+2. اگر اولین بار است، اجازهٔ نصب بدهید:
+   **Settings ▸ Apps ▸ Special app access ▸ Install unknown apps** → برای «Chrome» یا «Files» روشن شود.
+   (روی بعضی گوشی‌ها: تنظیمات → برنامه‌ها → منوی سه‌نقطه ▸ «نصب برنامهٔ ناشناس».)
+3. فایل دانلودشده را از اعلان دانلود یا پوشهٔ `Download` باز کنید → **Install** → **Open**.
+4. اگر **Play Protect** هشدار داد: **More details ▸ Install anyway** — طبیعی است، چون امضا از نوع debug است.
+5. اندروید 13+ موقع اجرا اجازهٔ اعلان می‌خواهد؛ برای یادآورهای اوقات «Allow» بزنید.
 
-برای **APK امضاشدهٔ نهایی** (توزیع دوستانه، بدون Play): با Bubblewrap محلی
-(`bubblewrap build` با keystore خودتان) یا از همین workflow، مرحلهٔ `assembleRelease` +
-`keytool` را اضافه کنید. کلید امضا را **هرگز** در ریپو نگذارید (`.gitignore` جلوی `*.keystore` را می‌گیرد).
+**به‌روزرسانی فطرس:** APK تازه را روی همان نصب بزنید؛ وظایف، یادداشت‌ها، تنظیمات و
+داده‌های IndexedDB **پاک نمی‌شوند**. تنها اگر امضا عوض شود (بیلد با keystore دیگر) اول uninstall لازم است.
 
-### ۱۰٫۴ روش ۲: Capacitor (وقتی قابلیت بومی لازم شد)
-`capacitor.config.json` آماده است (`webDir: "www"`). با Termux:
+### ۱۰٫۵ ساخت محلی (اختیاری — Termux یا لپ‌تاپ)
 ```bash
-pkg install nodejs-lts openjdk-17 -y
-mkdir -p www && cp index.html style.css script.js manifest.json sw.js offline.html www/ && cp -r fonts icons data audio www/
-npm init -y && npm i @capacitor/core @capacitor/cli @capacitor/android
+pkg install nodejs-lts openjdk-17 -y     # فقط در Termux؛ روی کامپیوتر Node 20 + JDK 17
+npm ci
+node scripts/build-www.mjs
 npx cap add android && npx cap sync android
-cd android && ./gradlew assembleDebug   # → android/app/build/outputs/apk/debug/app-debug.apk
+node scripts/apply-android-assets.mjs
+cd android && ./gradlew assembleDebug     # → android/app/build/outputs/apk/debug/app-debug.apk
 ```
-افزونه‌های موردنیاز برای کارهای بومی: `@capacitor/local-notifications` (اعلان مطمئن)،
-`@capacitor/status-bar`، `@capacitor/splash-screen`، و برای اذان پس‌زمینه یک سرویس MediaSession/Foreground.
+خروجی را با `termux-open app-debug.apk` باز کنید یا به پوشهٔ `Download` کپی کنید.
+`android/` و `www/` در `.gitignore` اند: هر بار باز تولید می‌شوند و نیازی به کامیت نیست.
 
-### ۱۰٫۵ دسترسی‌هایی که APK ممکن است بخواهد
+### ۱۰٫۶ عیب‌یابی بیلد APK
+| پیام | علت و راه‌حل |
+|---|---|
+| `npm ci` : «can only install with an existing package-lock.json» | `package-lock.json` کامیت نشده — اضافه‌اش کنید (در این ریپو هست) |
+| `Capacitor 7/8 requires JDK 21` | این ریپو روی Capacitor 6 + JDK 17 قفل است؛ اگر Capacitor را بالا بردید `java-version` را 21 کنید |
+| `SDK location not found` / `Failed to find target android-34` | مرحلهٔ `sdkmanager --install "platforms;android-34"` را ببینید؛ در بیلد محلی خودتان نصبش کنید |
+| `cap add android` : platform already exists | `rm -rf android` و دوباره — پوشهٔ `android/` کامیت نمی‌شود |
+| `[www] FAIL: ارجاع شکسته در بستهٔ وب` | فایلی که `index.html`/`style.css`/`sw.js` به آن ارجاع می‌دهید وجود ندارد؛ یا فایل را بگذارید یا ارجاع را بردارید |
+| `mergeDebugResources` failed | فایل XML داخل `native/android/res` خراب است؛ با ویرایشگر بررسی کنید |
+| بیلد سبز است ولی آیکون پیش‌فرض Capacitor است | `node scripts/apply-android-assets.mjs` اجرا نشده |
+| APK نصب شد ولی صفحهٔ سفید است | `android/app/src/main/assets/public/index.html` نیست — مرحلهٔ `cap sync` را ببینید |
+| اعلان‌های پس‌زمینه مطمئن نیستند | طبیعی است؛ API اعلانِ مرورگر در WebView محدود است → بخش ۱۳ |
+
+### ۱۰٫۷ چه چیزی این APK عمداً **ندارد** (صادقانه)
+- **امضای release** با keystore شخصی (برای کافه‌بازار/Play لازم است): `keytool -genkeypair …` و یک
+  `signingConfig` در `android/app/build.gradle`. کلید و رمز را **هرگز** در ریپو نگذارید
+  (`.gitignore` جلوی `*.keystore`/`*.jks` را می‌گیرد و رازها را در Settings ▸ Secrets ذخیره کنید).
+- AlarmManager/foreground service برای اذان و یادآور مطمئن، ویجت صفحهٔ خانه، SAF، بیومتریک → بخش ۱۳.
+- `fonts/Rokh.ttf` و `audio/*.mp3`: اگر در ریپو بگذارید، خودکار داخل همین بسته می‌روند؛
+  اگر نه، برنامه با فونت سیستم و بدون صدا درست کار می‌کند (هیچ مرحله‌ای fail نمی‌شود).
+
+### ۱۰٫۸ دسترسی‌هایی که APK ممکن است بخواهد
 ```xml
 <uses-permission android:name="android.permission.POST_NOTIFICATIONS"/>      <!-- اعلان (اندروید ۱۳+) -->
 <uses-permission android:name="android.permission.SCHEDULE_EXACT_ALARM"/>    <!-- یادآور دقیق -->
@@ -315,6 +359,13 @@ cd android && ./gradlew assembleDebug   # → android/app/build/outputs/apk/debu
 <uses-permission android:name="android.permission.VIBRATE"/>                  <!-- لرزش ذکر -->
 ```
 فقط همان‌قدر که لازم دارید بخواهید؛ هر دسترسی اضافه، اعتماد کاربر را کم می‌کند.
+
+این خط‌ها را **بعد از** `npx cap add android` در `android/app/src/main/AndroidManifest.xml`
+(زیر `<!-- Permissions -->`) اضافه کنید؛ `INTERNET` از قبل در قالب هست. چون `android/` در این
+ریپو کامیت نمی‌شود، برای بیلد ابری همین دستور را به workflow اضافه کنید (قبل از `assembleDebug`):
+```bash
+sed -i 's#<!-- Permissions -->#<!-- Permissions -->\n    <uses-permission android:name="android.permission.POST_NOTIFICATIONS"/>#' android/app/src/main/AndroidManifest.xml
+```
 
 ---
 

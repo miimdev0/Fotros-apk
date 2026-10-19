@@ -1,20 +1,32 @@
-# هیچ ابزار بیلدی لازم نیست؛ این فایل فقط برای تمیزی ریپو و تست‌هاست.
+# خودِ وب‌اپ هیچ ابزار بیلدی لازم ندارد.
+# package.json + node_modules فقط «ابزار بسته‌بندی APK» (Capacitor) است و در
+# مرورگر اصلاً استفاده نمی‌شود؛ برای همین پوشه‌های بومی کامیت نمی‌شوند.
 node_modules/
-www/
-out/
-twa/
-android/app/build/
-android/build/
-android/.gradle/
-*.log
-.DS_Store
-Thumbs.db
-.vscode/
-.idea/
-coverage/
 
-# فایل‌های شخصی/حساس را هرگز کامیت نکنید
+# پوشه‌ای که «node scripts/build-www.mjs» می‌سازد (فایل‌های وب برای کپی در APK)
+/www/
+
+# خروجی‌های محلی بیلد
+/out/
+/twa/
+/coverage/
+*.log
+
+# پروژهٔ اندروید/IOS که با «npx cap add android» در CI باز تولید می‌شود
+/android/
+/ios/
+*.apk
+*.aab
+.gradle/
+
+# امضا — هرگز کامیت نشود
 *.keystore
 *.jks
 *.key
 .env
+
+# ویرایشگر/سیستم‌عامل
+.vscode/
+.idea/
+.DS_Store
+Thumbs.db

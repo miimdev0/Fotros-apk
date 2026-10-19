@@ -1427,7 +1427,7 @@ const NOTIFY = {};
 NOTIFY.lastFired = {}; NOTIFY.perm = "default";
 NOTIFY.available = () => ("Notification" in WIN);
 NOTIFY.request = async function (want) {
-  if (!NOTIFY.available()) { SET.data.notifications = false; SET.save(); UI.toast("اعلان", "مرورگر شما Notification API را ندارد.", "warn"); return; }
+  if (!NOTIFY.available()) { SET.data.notifications = false; SET.save(); UI.toast("اعلان", "این محیط از Notification API پشتیبانی نمی‌کند؛ یادآوری‌ها درون برنامه نشان داده می‌شوند. (در APK برای اعلان مطمئن به افزونهٔ بومی نیاز است)", "warn"); return; }
   if (!want) { SET.data.notifications = false; SET.save(); UI.toast("اعلان", "اعلان‌ها خاموش شد"); return; }
   let p = Notification.permission;
   if (p === "default") { try { p = await Notification.requestPermission(); } catch (e) { p = "denied"; } }
@@ -2096,7 +2096,22 @@ VIEWS.settings.init2 = function () { VIEWS.settings.paint(); };
    --------------------------------------------------------------- */
 const PWA = {};
 PWA.deferredInstall = null;
+/* داخل APK (Capacitor) فایل‌ها از قبل روی دستگاه‌اند؛ آنجا Service Worker فقط
+   نسخهٔ کهنه را نگه می‌دارد و آپدیت را سخت می‌کند، پس غیرفعال است. */
+PWA.native = !!(WIN && (WIN.Capacitor || /^(capacitor|ionic):/i.test((WIN.location && WIN.location.protocol) || "")));
 PWA.init = function () {
+  if (PWA.native) {
+    PWA.mode = "native";
+    UI.setNetStatus(WIN.navigator.onLine !== false);
+    const t = U.$("#statusText"); if (t) t.textContent = "نسخهٔ APK — فایل‌ها داخل برنامه‌اند، آفلاین همیشه کار می‌کند";
+    const note = U.$("#pwaModeNote");
+    if (note) note.textContent = "این نسخه APK است: همهٔ فایل‌ها داخل برنامه کپی شده‌اند، پس بدون اینترنت هم باز می‌شود و نیازی به «Install app» یا سرویس‌ورکر نیست. برای به‌روزرسانی، APK تازه را روی همین نصب نصب کنید — داده‌هایتان می‌ماند.";
+    const b = U.$("#btnInstall"); if (b) b.classList.add("hidden");
+    const upd = U.$("#btnCheckUpdate"); if (upd) upd.textContent = "چطور به‌روز کنم؟";
+    UI.initConnectivity();
+    return;
+  }
+  PWA.mode = "web";
   if (!WIN.navigator.serviceWorker) { UI.toast("PWA", "مرورگر Service Worker ندارد؛ آفلاین‌بودن محدود می‌شود", "warn"); return; }
   if (location.protocol === "file:") { UI.toast("هشدار", "باز کردن با file:// باعث می‌شود PWA و کش کار نکند. از HTTPS یا localhost استفاده کنید.", "sticky"); }
   WIN.navigator.serviceWorker.register("sw.js").then(reg => {
@@ -2129,6 +2144,7 @@ PWA.offerUpdate = function () {
   t.actions.insertBefore(btn, t.actions.firstChild);
 };
 PWA.checkUpdate = async function (manual) {
+  if (PWA.native) { UI.toast("به‌روزرسانی", "در نسخهٔ APK، به‌روزرسانی با نصب کردن فایل APK تازه انجام می‌شود (رویکرد همان نصب؛ داده‌ها پاک نمی‌شوند)."); return; }
   if (!PWA.reg) { UI.toast("بررسی", "سرویس‌ورکر ثبت نشده است", "warn"); return; }
   try { await PWA.reg.update(); UI.toast("بررسی به‌روزرسانی", "بررسی شد. اگر نسخهٔ جدیدی باشد، پیام «به‌روزرسانی» را می‌بینید."); }
   catch (e) { UI.toast("بررسی به‌روزرسانی", "ناموفق: " + (e && e.message || ""), "warn"); }

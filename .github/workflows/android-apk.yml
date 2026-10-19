@@ -1,134 +1,198 @@
-name: Build FETROS Android APK (free cloud build)
+name: Build FETROS Android APK (bundled · offline-ready)
 
-# این فایل یک راه‌اندازی ابری رایگان برای ساخت APK است.
-# - روی ریپوی PUBLIC، دقیقه‌های GitHub Actions نامحدود و رایگان است.
-# - روی ریپوی PRIVATE، ماهی ۲۰۰۰ دقیقه رایگان (پلن Free).
-# دو روش ساخته می‌شود:
-#   1) TWA با bubblewrap (روش اصلی، بدون Android Studio) → app-debug.apk
-#   2) Capacitor (اختیاری، برای افزونه‌های بومی در آینده)
-# برای اجرا: تب Actions → «Build FETROS Android APK» → Run workflow
+# ─────────────────────────────────────────────────────────────────────────────
+# این workflow یک APK واقعی می‌سازد که «خودِ فایل‌های وب» داخلش بسته‌بندی شده‌اند
+# (Capacitor با webDir=www) — یعنی TWA نیست و آدرس سایت را باز نمی‌کند؛
+# پس روی گوشی بدون اینترنت هم کار می‌کند و به site_url وابسته نیست.
+#
+# کِی اجرا می‌شود؟
+#   1) هر push روی شاخهٔ main  → APK ساخته + به ریلیز «v2-debug» پیوست می‌شود.
+#   2) دستی: تب Actions → این workflow → Run workflow  (با گزینه‌ها).
+#
+# رایگان بودن: روی ریپوی Public دقیقه‌های Actions نامحدود/رایگان است؛
+# روی Private ماهی ۲۰۰۰ دقیقه (پلن Free). Release و Artifact هم رایگان‌اند.
+# ─────────────────────────────────────────────────────────────────────────────
 
 on:
   workflow_dispatch:
     inputs:
-      site_url:
-        description: "آدرس کامل وب‌اپ (مثلاً https://USERNAME.github.io/Fotros-apk/)"
-        required: true
-        default: "https://USERNAME.github.io/Fotros-apk/"
-      app_name:
-        description: "نام برنامه"
+      release_tag:
+        description: "تگ ریلیزی که APK به آن پیوست می‌شود"
         required: false
-        default: "فطرس"
-      package_id:
-        description: "شناسهٔ بسته (معکوس دامنه)"
+        default: "v2-debug"
+        type: string
+      publish_release:
+        description: "APK را به‌عنوان GitHub Release هم منتشر کن (اگر خاموش باشد فقط Artifact)"
+        type: boolean
+        default: true
+      apk_flavor:
+        description: "نوع بسته"
         required: false
-        default: "ir.fetros.app"
+        default: "bundled"
+        type: choice
+        options:
+          - bundled
   push:
-    tags:
-      - "v*"
+    branches:
+      - main
 
 permissions:
-  contents: read
+  contents: write
 
 concurrency:
   group: fetros-apk-${{ github.ref }}
   cancel-in-progress: true
 
+env:
+  APP_VERSION: "2.0.0"
+  APP_NAME: "فطرس"
+  PACKAGE_ID: "ir.fetros.app"
+  ANDROID_COMPILE_SDK: "34"
+
 jobs:
   apk:
-    name: Debug APK (TWA via Bubblewrap)
+    name: Capacitor debug APK (وب‌فایل‌ها داخل بسته)
     runs-on: ubuntu-latest
-    timeout-minutes: 25
-    env:
-      SITE_URL: ${{ github.event.inputs.site_url || 'https://USERNAME.github.io/Fotros-apk/' }}
-      APP_NAME: ${{ github.event.inputs.app_name || 'فطرس' }}
-      PACKAGE_ID: ${{ github.event.inputs.package_id || 'ir.fetros.app' }}
+    timeout-minutes: 35
     steps:
       - name: Checkout
         uses: actions/checkout@v4
+        with:
+          fetch-depth: 1
+          persist-credentials: true
 
-      - name: Set up Node
+      - name: Set up Node 20
         uses: actions/setup-node@v4
         with:
           node-version: "20"
+          cache: npm
 
-      - name: Set up JDK 17
+      - name: Set up JDK 17 (Capacitor 6 = Java 17)
         uses: actions/setup-java@v4
         with:
           distribution: temurin
           java-version: "17"
+          cache: gradle
 
-      - name: Android SDK sanity (preinstalled on ubuntu-latest)
+      - name: Android SDK — پذیرش لایسنس و پلتفرم لازم
         run: |
-          echo "ANDROID_HOME=$ANDROID_HOME"
-          ls "$ANDROID_HOME" | head -20 || true
-          yes | "$ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager" --licenses >/dev/null 2>&1 || true
+          echo "ANDROID_HOME=${ANDROID_HOME:-not-set}"
+          SDKM=""
+          for c in "$ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager" "$(command -v sdkmanager || true)"; do
+            [ -n "$c" ] && [ -x "$c" ] && SDKM="$c" && break
+          done
+          if [ -n "$SDKM" ]; then
+            yes | "$SDKM" --licenses >/dev/null 2>&1 || true
+            "$SDKM" --install "platform-tools" "platforms;android-${ANDROID_COMPILE_SDK}" "build-tools;${ANDROID_COMPILE_SDK}.0.0" >/dev/null 2>&1 || true
+          else
+            echo "sdkmanager پیدا نشد — ادامه می‌دهیم؛ اگر لازم بود Gradle خودش پیام می‌دهد."
+          fi
+          ls "${ANDROID_HOME}/platforms" 2>/dev/null || true
 
-      - name: Install Bubblewrap CLI
-        run: npm install -g @bubblewrap/cli@latest
+      - name: "نصب وابستگی‌ها (فقط ابزار بسته‌بندی — Capacitor)"
+        run: npm ci --no-audit --no-fund
 
-      - name: Generate TWA project from the live manifest
+      - name: آزمون‌های واحد — دروازهٔ کیفیت قبل از بسته‌بندی
         run: |
-          mkdir -p twa && cd twa
-          bubblewrap --update
-          bubblewrap init \
-            --manifest "$SITE_URL/manifest.json" \
-            --app-name "$APP_NAME" \
-            --package-id "$PACKAGE_ID" \
-            --host-name "$(echo "$SITE_URL" | sed -E 's#https?://([^/]+).*#\1#')"
-          ls -la
+          node tests/run.mjs
+          node tests/sw.mjs
 
-      - name: Build debug APK (gradle, default debug keystore)
-        working-directory: twa
-        run: |
-          chmod +x gradlew
-          ./gradlew --no-daemon assembleDebug || ./gradlew --no-daemon assembleDebug
+      - name: آماده‌سازی www/ (کپی فایل‌های وب + بررسی یکپارچگی ارجاع‌ها)
+        run: node scripts/build-www.mjs
 
-      - name: Collect APK
+      - name: افزودن پلتفرم اندروید و sync
         run: |
-          mkdir -p out
-          cp twa/app/build/outputs/apk/debug/app-debug.apk out/fetros-debug.apk || \
-          find . -name "*.apk" -exec cp {} out/fetros-debug.apk \;
-          ls -la out
-
-      - name: Upload APK artifact
-        uses: actions/upload-artifact@v4
-        with:
-          name: fetros-android-apk
-          path: out/fetros-debug.apk
-          if-no-files-found: error
-          retention-days: 30
-
-  # ── روش دوم (اختیاری): Capacitor ───────────────────────────────────────────
-  # برای وقتی که اعلان مطمئنِ پس‌زمینه/ویجت لازم می‌شود.
-  # با پیش‌فرض خاموش است؛ برای فعال‌کردن، خط «if: false» را پاک کنید.
-  capacitor:
-    if: false
-    name: Optional Capacitor project
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
-        with: { node-version: "20" }
-      - uses: actions/setup-java@v4
-        with: { distribution: temurin, java-version: "17" }
-      - name: Stage web assets into www/
-        run: |
-          mkdir -p www
-          cp index.html style.css script.js manifest.json sw.js offline.html README.md www/
-          cp -r fonts icons data audio www/
-      - name: Add Capacitor + Android platform
-        run: |
-          npm init -y >/dev/null
-          npm i @capacitor/core @capacitor/cli @capacitor/android
           npx cap add android
           npx cap sync android
-      - name: Build debug APK
+          npx cap doctor || true
+
+      - name: اعمال آیکون و اسپلش برند فطرس (native/android/res → android)
         run: |
-          cd android && chmod +x gradlew && ./gradlew --no-daemon assembleDebug
-      - name: Upload
+          node scripts/apply-android-assets.mjs
+          echo "── آیکون‌های نهایی داخل پروژه ──"
+          ls -la android/app/src/main/res/mipmap-xxxhdpi
+          grep -n "ic_launcher_background" android/app/src/main/res/values/ic_launcher_background.xml
+
+      - name: تأیید اینکه فایل‌ها داخل پروژهٔ اندروید کپی شده‌اند (آفلاین‌بودن)
+        run: |
+          PUB=android/app/src/main/assets/public
+          for f in index.html style.css script.js manifest.json offline.html data/occasions.js icons/icon.svg; do
+            if [ ! -s "$PUB/$f" ]; then echo "::error file=$f:: این فایل داخل APK نیست: $PUB/$f"; exit 1; fi
+          done
+          echo "── محتوای assets/public ──"; ls -la "$PUB" | head -25
+          for f in mipmap-xxxhdpi/ic_launcher.png mipmap-xxxhdpi/ic_launcher_foreground.png drawable/splash.png; do
+            if [ ! -s "android/app/src/main/res/$f" ]; then echo "::error file=$f:: فایل برند در res نیست"; exit 1; fi
+          done
+          echo "── package id ──"; grep -nE 'applicationId|versionCode|versionName' android/app/build.gradle
+          echo "── باید آدرس راه‌دور در config نباشد (TWA نیستیم) ──"
+          if grep -q '"url"[[:space:]]*:' capacitor.config.json; then
+            echo "::error:: capacitor.config.json سرور راه‌دور دارد؛ باید حذف شود تا APK آفلاین بماند."; exit 1
+          fi
+          echo "ok: هیچ server.url در capacitor.config.json نیست"
+
+      - name: درج شمارهٔ بیلد در versionName
+        run: |
+          sed -i -E "s|^([[:space:]]*versionName)[[:space:]]+\".*\"|\1 \"${APP_VERSION}-build${GITHUB_RUN_NUMBER}\"|" android/app/build.gradle
+          grep -nE 'versionCode|versionName' android/app/build.gradle
+
+      - name: ساخت APK — ./gradlew assembleDebug
+        working-directory: android
+        run: |
+          chmod +x ./gradlew
+          ./gradlew --no-daemon --stacktrace assembleDebug
+
+      - name: جمع‌آوری APK و محاسبهٔ checksum
+        run: |
+          set -euo pipefail
+          APK="$(find android/app/build/outputs/apk -name '*.apk' -type f | sort | head -1)"
+          if [ -z "$APK" ] || [ ! -s "$APK" ]; then echo "::error:: هیچ APK در خروجی Gradle پیدا نشد"; exit 1; fi
+          mkdir -p out
+          cp "$APK" out/fetros-debug.apk
+          ( cd out && sha256sum fetros-debug.apk > checksum.txt && cat checksum.txt )
+          ls -la out
+          echo "APK_PATH=out/fetros-debug.apk" >> "$GITHUB_ENV"
+          echo "APK_SIZE_KB=$(du -k out/fetros-debug.apk | cut -f1)" >> "$GITHUB_ENV"
+          echo "APK_SHA256=$(cut -d' ' -f1 out/checksum.txt)" >> "$GITHUB_ENV"
+          echo "APK_SOURCE=$APK" >> "$GITHUB_ENV"
+          "$ANDROID_HOME/build-tools/${ANDROID_COMPILE_SDK}.0.0/aapt2" dump badging out/fetros-debug.apk 2>/dev/null | grep -E "^(package:|application-label|sdkVersion|targetSdkVersion)" || true
+
+      - name: انتشار Artifact با نام fetros-debug.apk
         uses: actions/upload-artifact@v4
         with:
-          name: fetros-capacitor-apk
-          path: android/app/build/outputs/apk/debug/app-debug.apk
-          retention-days: 14
+          name: fetros-debug.apk
+          path: |
+            out/fetros-debug.apk
+            out/checksum.txt
+          if-no-files-found: error
+          retention-days: 90
+
+      - name: انتشار GitHub Release (APK مستقیم قابل دانلود)
+        env:
+          GH_TOKEN: ${{ github.token }}
+          REL_TAG: ${{ github.event.inputs.release_tag || 'v2-debug' }}
+          PUBLISH: ${{ github.event.inputs.publish_release || 'true' }}
+          TITLE: "فطرس v2 — APK دیباگ (اندروید)"
+        run: bash .github/scripts/publish-release.sh
+
+      - name: خلاصهٔ بیلد
+        if: always()
+        run: |
+          {
+            echo "## فطرس · بیلد APK"
+            echo
+            echo "| مورد | مقدار |"
+            echo "|---|---|"
+            echo "| رویداد | \`${{ github.event_name }}\` |"
+            echo "| شاخه/تگ | \`${{ github.ref_name }}\` |"
+            echo "| کامیت | \`${GITHUB_SHA:0:7}\` |"
+            echo "| بیلد شماره | ${GITHUB_RUN_NUMBER} |"
+            if [ -s out/fetros-debug.apk ]; then
+              echo "| APK | \`fetros-debug.apk\` · $(du -k out/fetros-debug.apk | cut -f1) KB |"
+              echo "| SHA-256 | \`$(cut -d' ' -f1 out/checksum.txt)\` |"
+            else
+              echo "| APK | ساخته نشد — لاگ را ببینید |"
+            fi
+            echo "| نتیجهٔ job | ${{ job.status }} |"
+            echo
+            echo "دانلود: **Artifacts → \`fetros-debug.apk\`** یا از GitHub Release \`v2-debug\` (بدون زیپ)."
+          } >> "$GITHUB_STEP_SUMMARY"
