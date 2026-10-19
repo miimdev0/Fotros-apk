@@ -15,6 +15,30 @@ FILE="$DIR/$BRANCH/latest-failure.md"
 
 rm -rf "$DIR"; mkdir -p "$DIR/$BRANCH"
 
+# بهترین‌تلاش: جدول مرحله‌ها را از API می‌گیریم تا حتی وقتی لاگی نوشته نشده، مشخص باشد
+# کدام مرحله شکسته است ( این کار با همین توکن flow معمولی خواندنی است ).
+STEPS_MD="$(
+  curl -sS --max-time 20 \
+    -H "authorization: Bearer ${TOKEN}" -H "accept: application/vnd.github+json" \
+    "${GITHUB_API_URL:-https://api.github.com}/repos/${REPO}/actions/runs/${GITHUB_RUN_ID}/jobs?per_page=100&attempt=${GITHUB_RUN_ATTEMPT:-1}" 2>/dev/null |
+  python3 -c '
+import json,sys
+try: d=json.load(sys.stdin)
+except Exception: sys.exit(0)
+# این workflow یک job دارد، پس اولین job همان ماست
+job = (d.get("jobs") or [None])[0]
+if not job: sys.exit(0)
+for st in job.get("steps",[]):
+    c=st.get("conclusion") or st.get("status")
+    if c in ("failure","cancelled","timed_out"):
+        print("❌", st.get("name"))
+    elif c=="success":
+        print("✅", st.get("name"))
+    else:
+        print("•", c, "·", st.get("name"))
+' 2>/dev/null || true
+)"
+
 {
   echo "# فطرس · گزارش خطای بیلد APK"
   echo
@@ -22,8 +46,8 @@ rm -rf "$DIR"; mkdir -p "$DIR/$BRANCH"
   echo "- کامیت: \`${GITHUB_SHA:0:7}\` · ref: \`${GITHUB_REF_NAME:-?}\` · رویداد: \`${GITHUB_EVENT_NAME:-?}\`"
   echo "- زمان: $(date -u +%Y-%m-%dT%H:%M:%SZ)"
   echo
-  echo "## آخرین مرحله‌ای که اجرا شد"
-  echo "اگر خطای Gradle است، معمولاً در بخش «ساخت APK» است؛ اگر نصب/سینک است، در بخش npm یا cap."
+  echo "## مرحله‌ها"
+  if [ -n "$STEPS_MD" ]; then printf '%s\n' "$STEPS_MD" | sed 's/^/  /'; else echo "(جدول مرحله‌ها از API گرفته نشد)"; fi
   echo
   echo '## انتهای لاگ (۲۰۰ خط آخر)'
   echo '```text'
