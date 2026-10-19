@@ -56,7 +56,9 @@ env:
 jobs:
   apk:
     name: Capacitor debug APK (وب‌فایل‌ها داخل بسته)
-    runs-on: ubuntu-latest
+    # ubuntu-24.04 را صریح قفل می‌کنیم: برچسب ubuntu-latest از امروز به اوبونتو ۲۶ مهاجرت
+    # می‌کند و تصویر Android SDK از پیش نصب‌شدهٔ ۲۴٫۰۴ برای این بیلد شناخته‌شده است.
+    runs-on: ubuntu-24.04
     timeout-minutes: 35
     env:
       # مسیر مطلق و ثابت؛ context «runner» در env سطح job مجاز نیست
@@ -79,7 +81,9 @@ jobs:
         with:
           distribution: temurin
           java-version: "17"
-          cache: gradle
+          # «cache: gradle» را اینجا نمی‌گذاریم: پوشهٔ android/ هنوز ساخته نشده و
+          # setup-java با خطای «No file matched **/gradle-wrapper.properties» می‌شکند.
+          # کش Gradle در مرحلهٔ مستقلی بعد از «cap add android» انجام می‌شود.
 
       - name: "پیش‌بررسی محیط بیلد"
         run: |
@@ -142,6 +146,17 @@ jobs:
             npx cap sync android
             npx cap doctor || true
           } 2>&1 | tee -a "$LOG"
+
+      - name: "کش وابستگی‌های Gradle (اگر کش نباشد، بیلد فقط کندتر می‌شود)"
+        continue-on-error: true
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.gradle/caches
+            ~/.gradle/wrapper
+          key: fetros-gradle-${{ runner.os }}-${{ hashFiles('android/gradle/wrapper/gradle-wrapper.properties', 'android/variables.gradle', 'package-lock.json') }}
+          restore-keys: |
+            fetros-gradle-${{ runner.os }}-
 
       - name: "اعمال آیکون و اسپلش برند فطرس (native/android/res → android)"
         run: |
