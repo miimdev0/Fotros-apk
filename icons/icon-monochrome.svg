@@ -1,0 +1,24 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" role="img" aria-label="FETROS monochrome icon">
+  <rect width="512" height="512" rx="116" fill="black"/>
+  <path d="M 98 280 A 168 168 0 0 1 414 280" fill="none" stroke="white" stroke-width="18" stroke-linecap="round"/>
+  <circle cx="256" cy="182" r="46" fill="white"/>
+  <g stroke="white" stroke-linecap="round">
+    <line x1="256" y1="102" x2="256" y2="118" stroke-width="4"/>
+    <line x1="202" y1="118" x2="212" y2="130" stroke-width="3.5"/>
+    <line x1="310" y1="118" x2="300" y2="130" stroke-width="3.5"/>
+    <line x1="168" y1="150" x2="182" y2="158" stroke-width="3"/>
+    <line x1="344" y1="150" x2="330" y2="158" stroke-width="3"/>
+  </g>
+  <path d="M 256 238 C 286 238 312 258 318 286 C 304 278 288 274 271 275 C 236 276.5 210 304 212 338 C 213.5 354 221 368 232 378 C 188 370 158 326 168 280 C 172 258 184 242 202 232 C 218 238 237 238 256 238 Z" fill="white"/>
+  <g>
+    <rect x="86" y="348" width="340" height="52" rx="12" fill="none" stroke="white" stroke-width="1.4" opacity="0.9"/>
+    <line x1="86" y1="368" x2="426" y2="368" stroke="white" stroke-width="1.2" opacity="0.8"/>
+    <line x1="86" y1="385" x2="426" y2="385" stroke="white" stroke-width="1" opacity="0.5"/>
+    <line x1="142" y1="348" x2="142" y2="400" stroke="white" stroke-width="1" opacity="0.6"/>
+    <line x1="199" y1="348" x2="199" y2="400" stroke="white" stroke-width="1" opacity="0.6"/>
+    <line x1="256" y1="348" x2="256" y2="400" stroke="white" stroke-width="1" opacity="0.6"/>
+    <line x1="313" y1="348" x2="313" y2="400" stroke="white" stroke-width="1" opacity="0.6"/>
+    <line x1="370" y1="348" x2="370" y2="400" stroke="white" stroke-width="1" opacity="0.6"/>
+    <circle cx="256" cy="377" r="6" fill="white"/>
+  </g>
+</svg>

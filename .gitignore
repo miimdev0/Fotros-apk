@@ -1,0 +1,20 @@
+# هیچ ابزار بیلدی لازم نیست؛ این فایل فقط برای تمیزی ریپو و تست‌هاست.
+node_modules/
+www/
+out/
+twa/
+android/app/build/
+android/build/
+android/.gradle/
+*.log
+.DS_Store
+Thumbs.db
+.vscode/
+.idea/
+coverage/
+
+# فایل‌های شخصی/حساس را هرگز کامیت نکنید
+*.keystore
+*.jks
+*.key
+.env

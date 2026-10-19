@@ -1,0 +1,536 @@
+<!doctype html>
+<html lang="fa" dir="rtl" data-theme="dark" data-accent="gold" data-motion="medium">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="theme-color" content="#101114">
+<meta name="color-scheme" content="dark light">
+<meta name="description" content="فطرس — تقویم فارسی، اوقات شرعی، قبله‌نما، ذکر، یادداشت و یادآور. آفلاین، بدون حساب کاربری.">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<link rel="preload" href="fonts/Rokh.ttf" as="font" type="font/ttf" crossorigin>
+<link rel="icon" href="icons/icon.svg" type="image/svg+xml">
+<link rel="apple-touch-icon" href="icons/icon-512.png">
+<link rel="manifest" href="manifest.json">
+<title>فطرس — همراه لحظه‌های زندگی</title>
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <!-- Atmospheric background (blobs + noise) -->
+  <div class="bg-atmo" aria-hidden="true">
+    <div class="blob blob-1"></div>
+    <div class="blob blob-2"></div>
+    <div class="blob blob-3"></div>
+    <div class="noise"></div>
+  </div>
+
+  <!-- Splash with animated logo + percent -->
+  <div id="splash" class="splash" role="status" aria-live="polite" aria-label="در حال بارگذاری فطرس">
+    <div class="splash-panels" aria-hidden="true"><div class="splash-panel panel-top"></div><div class="splash-panel panel-bottom"></div></div>
+    <div class="splash-halo" aria-hidden="true"></div>
+    <div class="splash-content">
+      <div class="logo-wrap" aria-hidden="true">
+        <div class="logo-ring"></div>
+        <div class="logo-arc"></div>
+        <div class="logo-center">
+          <!-- emblem inline: arc draws itself, sun rises, crescent fades in -->
+          <svg class="logo-emblem" width="60" height="60" viewBox="0 0 512 512" aria-hidden="true">
+            <defs>
+              <linearGradient id="sg" x1="0%" y1="0%" x2="100%" y2="100%"><stop offset="0%" stop-color="#F5C451"/><stop offset="100%" stop-color="#FF7A35"/></linearGradient>
+              <radialGradient id="sglow" cx="50%" cy="50%" r="50%"><stop offset="0%" stop-color="#F5C451" stop-opacity=".55"/><stop offset="100%" stop-color="#FF7A35" stop-opacity="0"/></radialGradient>
+            </defs>
+            <circle class="em-glow" cx="256" cy="215" r="150" fill="url(#sglow)"/>
+            <path class="em-arc" d="M 98 280 A 168 168 0 0 1 414 280" fill="none" stroke="url(#sg)" stroke-width="20" stroke-linecap="round"/>
+            <circle class="em-sun" cx="256" cy="182" r="46" fill="url(#sg)"/>
+            <path class="em-crescent" d="M 256 238 C 286 238 312 258 318 286 C 304 278 288 274 271 275 C 236 276.5 210 304 212 338 C 213.5 354 221 368 232 378 C 188 370 158 326 168 280 C 172 258 184 242 202 232 C 218 238 237 238 256 238 Z" fill="#FFF8EA"/>
+            <g class="em-grid" opacity=".9">
+              <rect x="120" y="404" width="272" height="34" rx="9" fill="rgba(255,248,234,.10)" stroke="rgba(255,255,255,.16)"/>
+              <line x1="120" y1="418" x2="392" y2="418" stroke="rgba(255,255,255,.12)"/>
+              <circle cx="256" cy="425" r="4" fill="url(#sg)"/>
+            </g>
+          </svg>
+        </div>
+      </div>
+      <h2>فطرس</h2>
+      <p>همراه لحظه‌های زندگی</p>
+      <div class="loader-bar" aria-hidden="true"><div id="loaderFill" class="loader-fill" style="width:0%"></div></div>
+      <div id="loaderNum" class="loader-num tabular">۰٪</div>
+      <div class="small muted" style="margin-top:8px">نسخه ۲.۰ — آفلاین و امن</div>
+    </div>
+  </div>
+
+  <!-- Header -->
+  <header class="header" role="banner">
+    <a href="#" class="brand" id="brandHome" aria-label="رفتن به خانه">
+      <span class="brand-mark" aria-hidden="true">
+        <svg width="26" height="26" viewBox="0 0 512 512"><defs><linearGradient id="hg" x1="0%" y1="0%" x2="100%" y2="100%"><stop offset="0%" stop-color="#F5C451"/><stop offset="100%" stop-color="#FF7A35"/></linearGradient></defs><path d="M84 296 A172 172 0 0 1 428 296" fill="none" stroke="url(#hg)" stroke-width="24" stroke-linecap="round"/><circle cx="256" cy="184" r="52" fill="url(#hg)"/></svg>
+      </span>
+      <span>
+        <h1>فطرس</h1>
+        <p>همراه لحظه‌های زندگی</p>
+      </span>
+    </a>
+    <div class="header-actions">
+      <button id="btnSearch" class="icon-btn" aria-label="جستجو"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><circle cx="11" cy="11" r="7"/><path d="M20 20 L16.5 16.5"/></svg></button>
+      <button id="btnNotify" class="icon-btn" aria-label="اعلان‌ها" style="position:relative">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><path d="M6 8a6 6 0 0 1 12 0c0 7-6 11-6 11S6 15 6 8"/><path d="M10 21a2 2 0 0 0 4 0"/></svg>
+        <span id="notifyDot" class="badge hidden" aria-hidden="true">•</span>
+      </button>
+      <button id="btnSettings" class="icon-btn" aria-label="تنظیمات">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><circle cx="12" cy="12" r="3"/><path d="M12 1v2 M12 21v2 M4.22 4.22l1.42 1.42 M18.36 18.36l1.42 1.42 M1 12h2 M21 12h2 M4.22 19.78l1.42-1.42 M18.36 5.64l1.42-1.42"/></svg>
+      </button>
+    </div>
+  </header>
+
+  <!-- App -->
+  <main class="app" role="main">
+    <!-- Offline + update toasts -->
+    <div id="toastStack" class="toast-stack" aria-live="polite"></div>
+    <div id="statusLine" class="statusbar glass card" style="margin-bottom:12px">
+      <span style="display:flex;align-items:center;gap:8px"><span class="dot" aria-hidden="true"></span><span id="statusText">در حال همگام‌سازی…</span></span>
+      <span id="statusTime" class="tabular" style="font-weight:800"></span>
+    </div>
+
+    <!-- VIEW: HOME -->
+    <section id="view-home" class="view active" aria-labelledby="tab-home">
+      <!-- Hero time-of-day -->
+      <div id="hero" class="hero glass card-lg reveal in" data-period="day">
+        <div class="hero-sky" aria-hidden="true"></div>
+        <div class="hero-sun" aria-hidden="true"></div>
+        <div class="hero-content">
+          <div class="hero-kicker"><span id="heroGreet">صبح بخیر</span> <span class="pill" id="heroWeatherPill" style="display:none"><span id="heroWeatherTxt">—</span></span></div>
+          <div id="heroDate" class="hero-title">—</div>
+          <div class="hero-sub">
+            <span id="heroDateEquiv" class="pill">—</span>
+            <span id="heroClock" class="pill pill-accent tabular">۰۰:۰۰:۰۰</span>
+            <span id="heroCity" class="pill">تهران</span>
+          </div>
+        </div>
+        <div class="hero-content" style="margin-top:10px; display:flex; gap:8px; flex-wrap:wrap">
+          <span id="heroOccasion" class="pill" style="display:none"></span>
+          <span id="heroNextPrayer" class="pill" style="display:none"></span>
+        </div>
+      </div>
+
+      <!-- Next prayer countdown -->
+      <div class="grid mt12">
+        <div class="glass card card-lg reveal in">
+          <div class="row">
+            <div><div class="title">نماز بعدی</div><div id="nextPrayerName" class="desc">—</div></div>
+            <div style="display:flex; gap:6px; align-items:center"><span id="nextPrayerTime" class="pill pill-accent tabular">—</span><button id="btnGotoOwqat" class="link">اوقات شرعی ←</button></div>
+          </div>
+          <div id="countdown" class="countdown mt8" aria-live="polite"></div>
+          <div class="progress mt8" aria-hidden="true"><i id="prayerProgress"></i></div>
+          <div class="small muted mt8">زمان‌های محاسبه‌شده ممکن است با تقویم رسمی محل شما کمی تفاوت داشته باشد. برای دقت نهایی با مرجع محلی بررسی کنید.</div>
+        </div>
+      </div>
+
+      <div class="grid grid-2 mt12">
+        <div class="glass card reveal">
+          <div class="row"><div class="title">کارهای امروز</div><button class="link" data-goto="tools-tasks">مدیریت</button></div>
+          <div id="homeTasks" class="list mt8"></div>
+        </div>
+        <div class="glass card reveal">
+          <div class="row"><div class="title">یادداشت سریع</div><span class="small muted">ذخیرهٔ خودکار</span></div>
+          <textarea id="quickNote" class="textarea mt8" placeholder="چیزی بنویسید… (مثلاً ایده، دعا، نکتهٔ روز)" maxlength="2000"></textarea>
+          <div class="row mt8"><span id="quickNoteStatus" class="small muted">—</span><button id="btnSaveQuickNote" class="btn btn-primary btn-sm sheen">ذخیره</button></div>
+        </div>
+      </div>
+
+      <div class="grid grid-2 mt12">
+        <div class="glass card reveal">
+          <div class="row"><div class="title">یادآور بعدی</div><button class="link" data-goto="tools-reminders">همه</button></div>
+          <div id="homeReminders" class="mt8"></div>
+          <div class="row mt8" style="gap:8px">
+            <input id="quickReminderText" class="input" placeholder="متن یادآور (مثلاً تماس با مادر)">
+            <input id="quickReminderTime" class="input" type="datetime-local" style="max-width:190px">
+          </div>
+          <button id="btnAddQuickReminder" class="btn btn-ghost btn-sm mt8" style="width:100%">افزودن یادآور</button>
+        </div>
+        <div class="glass card reveal">
+          <div class="row"><div class="title">تقویم ماه</div><button id="btnHomeCalToday" class="link">امروز</button></div>
+          <div id="miniCal" class="cal-grid" style="gap:4px"></div>
+          <div id="miniCalTitle" class="small muted center mt8">—</div>
+        </div>
+      </div>
+
+      <div id="weatherCard" class="glass card mt12 reveal" style="display:none">
+        <div class="row"><div class="title">آب‌وهوا</div><span id="weatherUpdated" class="small muted">—</span></div>
+        <div class="row mt8">
+          <div style="display:flex;gap:10px;align-items:center"><div id="weatherTemp" style="font-size:28px;font-weight:900" class="tabular">—°</div><div><div id="weatherDesc" class="title" style="margin:0">—</div><div id="weatherMeta" class="small muted">—</div></div></div>
+          <button id="btnWeatherRefresh" class="mini" aria-label="به‌روزرسانی">↻</button>
+        </div>
+        <div id="weatherForecast" class="grid grid-3 mt8"></div>
+      </div>
+    </section>
+
+    <!-- VIEW: CALENDAR -->
+    <section id="view-calendar" class="view" aria-labelledby="tab-calendar">
+      <div class="glass card card-lg reveal">
+        <div class="cal-head">
+          <button id="calPrev" class="icon-btn" aria-label="ماه قبل">›</button>
+          <div style="text-align:center">
+            <div id="calMonthJ" class="cal-title">—</div>
+            <div id="calMonthG" class="small muted">—</div>
+          </div>
+          <button id="calNext" class="icon-btn" aria-label="ماه بعد">‹</button>
+        </div>
+        <div class="row mt8" style="gap:6px; flex-wrap:wrap">
+          <button id="calToday" class="btn btn-primary btn-sm sheen">امروز</button>
+          <button id="calPrevBtn" class="btn btn-ghost btn-sm">ماه قبل</button>
+          <button id="calNextBtn" class="btn btn-ghost btn-sm">ماه بعد</button>
+          <span id="calHijriMonth" class="pill" style="margin-inline-start:auto">—</span>
+        </div>
+        <div class="cal-grid" id="calDows"></div>
+        <div id="calGrid" class="cal-grid transition-slide"></div>
+        <div id="calLegend" class="cal-legend small"></div>
+      </div>
+
+      <div class="grid mt12">
+        <div class="glass card reveal">
+          <div id="calDetailTitle" class="title">یک روز را انتخاب کنید</div>
+          <div id="calDetailDate" class="small muted">—</div>
+          <div id="calDetailOccasions" class="list mt8"></div>
+          <div class="divider"></div>
+          <div class="title">مبدل تاریخ</div>
+          <div class="grid" style="gap:8px; margin-top:8px">
+            <div class="form-row">
+              <label><span class="label">شمسی (سال/ماه/روز)</span><input id="convJ" class="input tabular" placeholder="۱۴۰۴/۰۷/۲۷"></label>
+              <label><span class="label">میلادی (YYYY-MM-DD)</span><input id="convG" class="input tabular" placeholder="2025-10-19"></label>
+            </div>
+            <label><span class="label">قمری جدولی (سال/ماه/روز)</span><input id="convH" class="input tabular" placeholder="۱۴۴۷/۰۴/۲۵"></label>
+            <div class="row"><span id="convHelp" class="small muted">هر کادر را پر کنید تا دو تای دیگر خودکار تبدیل شوند. قمری جدولی است و ممکن است ‎۱± روز با رؤیت هلال تفاوت داشته باشد.</span><button id="btnConvToday" class="btn btn-ghost btn-sm">امروز</button></div>
+          </div>
+        </div>
+        <div class="glass card reveal">
+          <div class="row"><div class="title">جستجوی مناسبت</div><span class="small muted">از data/occasions.js</span></div>
+          <label class="search mt8"><input id="occSearch" class="input" placeholder="جستجو… (مثلاً نوروز، رمضان، فطر)"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="11" cy="11" r="7"/><path d="M20 20 L16.5 16.5"/></svg></label>
+          <div id="occList" class="list mt8" style="max-height:420px; overflow:auto"></div>
+        </div>
+      </div>
+    </section>
+
+    <!-- VIEW: OWQAT -->
+    <section id="view-owqat" class="view" aria-labelledby="tab-owqat">
+      <div class="glass card card-lg reveal">
+        <div class="row">
+          <div>
+            <div class="title">اوقات شرعی</div>
+            <div id="owqatCityLine" class="small muted">—</div>
+          </div>
+          <div style="display:flex; gap:6px">
+            <button id="btnLocate" class="btn btn-ghost btn-sm">مکان‌نما</button>
+            <button id="btnOwqatSettings" class="btn btn-primary btn-sm sheen">تنظیمات</button>
+          </div>
+        </div>
+        <div class="row mt8" style="flex-wrap:wrap; gap:8px">
+          <label style="flex:1; min-width:160px"><span class="label">شهر</span><select id="citySelect" class="select"></select></label>
+          <label style="min-width:140px"><span class="label">روش محاسبه</span><select id="methodSelect" class="select"><option value="Tehran">تهران (شیعه جعفری)</option><option value="MWL">رابطه العالم اسلامی</option><option value="Egypt">مصری</option><option value="Karachi">کراچی</option><option value="UmmAlQura">ام‌القری</option></select></label>
+          <label style="min-width:130px"><span class="label">مذهب عصر</span><select id="asrSelect" class="select"><option value="Standard">استاندارد (شافعی/جعفری)</option><option value="Hanafi">حنفی</option></select></label>
+        </div>
+        <div id="prayerList" class="prayer-grid mt12"></div>
+        <div id="owqatDisclaimer" class="small muted mt8"></div>
+        <div class="small muted mt8">منبع محاسبه: الگوریتم نجومی محلی (بدون API پولی). زمان‌ها تقریبی هستند؛ برای دقت شرعی با مرجع محلی تطبیق دهید. اذان فقط وقتی تب باز است و با اجازهٔ اعلان پخش می‌شود.</div>
+      </div>
+
+      <div class="glass card mt12 reveal">
+        <div class="row"><div class="title">قبله‌نما</div><span id="qiblaStatus" class="pill">در انتظار حسگر…</span></div>
+        <div class="compass-wrap">
+          <div class="compass" id="compass">
+            <div class="compass-ring"></div>
+            <div class="compass-labels"><span class="n">شمال</span><span class="e">شرق</span><span class="s">جنوب</span><span class="w">غرب</span></div>
+            <div id="qiblaMarker" class="qibla-marker" title="سمت قبله"></div>
+            <div id="compassNeedle" class="compass-needle" style="transform: translate(-50%,-100%) rotate(0deg)"></div>
+            <div class="compass-center"><span id="compassDeg" class="tabular">—°</span><br><span class="small muted">قبله</span><br><span id="qiblaDeg" class="tabular" style="font-weight:900">—°</span></div>
+          </div>
+        </div>
+        <div class="row mt8" style="gap:8px; flex-wrap:wrap">
+          <button id="btnCompassStart" class="btn btn-primary btn-sm sheen">فعال‌سازی قطب‌نما</button>
+          <button id="btnCompassManual" class="btn btn-ghost btn-sm">ورود دستی مختصات</button>
+          <span id="compassHelp" class="small muted" style="flex:1">برای قطب‌نما، اجازهٔ حسگر را بدهید و گوشی را افقی نگه دارید. روی دسکتاپ، جهت قبله به‌صورت ثابت از شهر شما محاسبه می‌شود.</span>
+        </div>
+        <div id="manualCoords" class="form-row mt8 hidden">
+          <label><span class="label">عرض جغرافیایی</span><input id="latInput" class="input tabular" placeholder="35.6892"></label>
+          <label><span class="label">طول جغرافیایی</span><input id="lonInput" class="input tabular" placeholder="51.3890"></label>
+        </div>
+      </div>
+
+      <div class="glass card mt12 reveal">
+        <div class="title">اذان و اعلان</div>
+        <div class="row mt8" style="flex-wrap:wrap; gap:8px">
+          <label class="chip"><input type="checkbox" id="notifEnable" class="sr-only"> اعلان مرورگر</label>
+          <label class="chip"><input type="checkbox" id="azanEnable" class="sr-only"> پخش اذان (audio/azan.mp3)</label>
+          <button id="btnTestAzan" class="btn btn-ghost btn-sm">تست صدا</button>
+          <button id="btnTestNotif" class="btn btn-ghost btn-sm">تست اعلان</button>
+        </div>
+        <div id="notifHelp" class="small muted mt8">مرورگرها وقتی تب بسته است اعلان دقیق نمی‌دهند؛ برای اعلان پس‌زمینهٔ مطمئن، نسخهٔ APK با سرویس بومی لازم است (راهنما در README).</div>
+        <audio id="azanAudio" preload="none" style="display:none"></audio>
+        <audio id="tickAudio" preload="none" style="display:none"></audio>
+        <div id="audioState" class="small muted mt8">فایل صوتی بررسی می‌شود…</div>
+      </div>
+    </section>
+
+    <!-- VIEW: TOOLS -->
+    <section id="view-tools" class="view" aria-labelledby="tab-tools">
+      <div class="glass card card-lg reveal">
+        <div class="title">ابزارها</div>
+        <div class="small muted">همهٔ داده‌ها آفلاین و روی دستگاه شما ذخیره می‌شوند (IndexedDB).</div>
+        <div class="grid grid-3 mt8">
+          <button class="glass card pressable" data-tool="dhikr" style="text-align:center"><div style="font-size:20px">📿</div><div class="title">ذکرشمار</div><div class="small muted">حلقهٔ پیشرفت + لرزش</div></button>
+          <button class="glass card pressable" data-tool="tasks" style="text-align:center"><div style="font-size:20px">✓</div><div class="title">کارها</div><div class="small muted">ایجاد، فیلتر، جستجو</div></button>
+          <button class="glass card pressable" data-tool="notes" style="text-align:center"><div style="font-size:20px">📝</div><div class="title">یادداشت‌ها</div><div class="small muted">علاقه‌مندی + جستجو</div></button>
+          <button class="glass card pressable" data-tool="reminders" style="text-align:center"><div style="font-size:20px">⏰</div><div class="title">یادآورها</div><div class="small muted">تکرار + سررسید</div></button>
+          <button class="glass card pressable" data-tool="birthdays" style="text-align:center"><div style="font-size:20px">🎂</div><div class="title">تولدها</div><div class="small muted">وصل به تقویم</div></button>
+          <button class="glass card pressable" data-tool="meds" style="text-align:center"><div style="font-size:20px">💊</div><div class="title">دارو</div><div class="small muted">برنامهٔ اختیاری</div></button>
+        </div>
+      </div>
+
+      <!-- Dhikr -->
+      <div id="tool-dhikr" class="tool-panel glass card mt12 reveal">
+        <div class="row"><div class="title">ذکرشمار</div><span class="pill">لمس = لرزش + صدا (در صورت وجود)</span></div>
+        <div class="row mt8" style="gap:8px; flex-wrap:wrap">
+          <label style="flex:1; min-width:160px"><span class="label">عنوان ذکر</span><input id="dhikrLabel" class="input" placeholder="مثلاً سبحان‌الله"></label>
+          <label style="min-width:140px"><span class="label">هدف</span><select id="dhikrTarget" class="select"><option value="33">۳۳</option><option value="34">۳۴</option><option value="99">۹۹</option><option value="100">۱۰۰</option><option value="0">بدون هدف</option></select></label>
+          <label class="chip" style="align-self:flex-end"><input type="checkbox" id="dhikrVibrate" checked class="sr-only"> لرزش</label>
+          <label class="chip" style="align-self:flex-end"><input type="checkbox" id="dhikrSound" class="sr-only"> صدای تیک</label>
+        </div>
+        <div class="dhikr-ring mt12">
+          <svg viewBox="0 0 220 220" aria-hidden="true"><defs><linearGradient id="gradGold" x1="0%" y1="0%" x2="100%" y2="100%"><stop offset="0%" stop-color="#F5C451"/><stop offset="100%" stop-color="#FF7A35"/></linearGradient></defs><circle class="bg" cx="110" cy="110" r="100"/><circle id="dhikrProgress" class="fg" cx="110" cy="110" r="100" stroke-dasharray="628" stroke-dashoffset="628"/></svg>
+          <div style="text-align:center"><div id="dhikrCount" class="dhikr-count tabular">۰</div><div id="dhikrLabelView" class="dhikr-label">سبحان‌الله</div><div id="dhikrSub" class="small muted">۰ / ۳۳</div></div>
+        </div>
+        <div class="dhikr-actions">
+          <button id="btnDhikrMinus" class="btn btn-ghost">−</button>
+          <button id="btnDhikrPlus" class="btn btn-primary sheen" style="min-width:120px; padding:14px 22px; font-size:16px">＋ ذکر</button>
+          <button id="btnDhikrReset" class="btn btn-ghost">بازنشانی</button>
+        </div>
+        <div class="row mt8"><span class="small muted">تاریخچه (ذخیرهٔ محلی)</span><button id="btnDhikrHistoryClear" class="link">پاک کردن</button></div>
+        <div id="dhikrHistory" class="list mt8"></div>
+      </div>
+
+      <!-- Tasks -->
+      <div id="tool-tasks" class="tool-panel glass card mt12 reveal">
+        <div class="row"><div class="title">کارها</div><div style="display:flex; gap:6px"><select id="taskFilter" class="select" style="width:auto"><option value="all">همه</option><option value="today">امروز</option><option value="active">فعال</option><option value="done">انجام‌شده</option></select><button id="btnTaskExport" class="btn btn-ghost btn-sm">خروجی</button></div></div>
+        <div class="row mt8" style="gap:8px">
+          <input id="taskInput" class="input" placeholder="کار جدید… (Enter برای افزودن)" maxlength="120">
+          <input id="taskDate" class="input" type="date" style="max-width:160px">
+          <button id="btnAddTask" class="btn btn-primary btn-sm sheen">افزودن</button>
+        </div>
+        <div id="tasksList" class="list mt8"></div>
+      </div>
+
+      <!-- Notes -->
+      <div id="tool-notes" class="tool-panel glass card mt12 reveal">
+        <div class="row"><div class="title">یادداشت‌ها</div><span id="notesCount" class="small muted">—</span></div>
+        <label class="search mt8"><input id="notesSearch" class="input" placeholder="جستجو در یادداشت‌ها…"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="11" cy="11" r="7"/><path d="M20 20 L16.5 16.5"/></svg></label>
+        <div class="form-row mt8">
+          <input id="noteTitle" class="input" placeholder="عنوان (اختیاری)">
+          <label style="display:flex; gap:6px; align-items:center"><input type="checkbox" id="noteFav"> <span class="small">علاقه‌مندی</span></label>
+        </div>
+        <textarea id="noteBody" class="textarea mt8" placeholder="متن یادداشت…"></textarea>
+        <div class="row mt8"><button id="btnSaveNote" class="btn btn-primary btn-sm sheen">ذخیره یادداشت</button><button id="btnClearNote" class="btn btn-ghost btn-sm">پاک کردن فرم</button></div>
+        <div id="notesList" class="list mt8"></div>
+      </div>
+
+      <!-- Reminders -->
+      <div id="tool-reminders" class="tool-panel glass card mt12 reveal">
+        <div class="row"><div class="title">یادآورها</div><span class="small muted">اعلان فقط وقتی تب باز است</span></div>
+        <div class="form-row mt8">
+          <label><span class="label">عنوان</span><input id="remTitle" class="input" placeholder="مثلاً پرداخت قبض"></label>
+          <label><span class="label">زمان</span><input id="remWhen" class="input" type="datetime-local"></label>
+        </div>
+        <div class="row mt8" style="gap:8px">
+          <label style="flex:1"><span class="label">تکرار</span><select id="remRepeat" class="select"><option value="none">بدون تکرار</option><option value="daily">روزانه</option><option value="weekly">هفتگی</option><option value="monthly">ماهانه</option></select></label>
+          <button id="btnAddReminder" class="btn btn-primary btn-sm sheen" style="align-self:flex-end">افزودن یادآور</button>
+        </div>
+        <div id="remindersList" class="list mt8"></div>
+      </div>
+
+      <!-- Birthdays -->
+      <div id="tool-birthdays" class="tool-panel glass card mt12 reveal">
+        <div class="title">تولدها و سالگردها</div>
+        <div class="form-row mt8">
+          <label><span class="label">نام</span><input id="bdName" class="input" placeholder="مثلاً مادر"></label>
+          <label><span class="label">تاریخ (شمسی MM-DD)</span><input id="bdDate" class="input tabular" placeholder="۰۷-۲۷"></label>
+        </div>
+        <div class="row mt8"><label><span class="label">نوع</span><select id="bdType" class="select"><option value="birthday">تولد</option><option value="anniversary">سالگرد</option></select></label><button id="btnAddBirthday" class="btn btn-primary btn-sm sheen">افزودن</button></div>
+        <div id="birthdaysList" class="list mt8"></div>
+      </div>
+
+      <!-- Meds -->
+      <div id="tool-meds" class="tool-panel glass card mt12 reveal">
+        <div class="row"><div class="title">یادآور دارو (اختیاری)</div><label class="chip"><input type="checkbox" id="medsEnable" class="sr-only"> فعال</label></div>
+        <div class="small muted">این یک یادآور ساده است و توصیهٔ پزشکی نیست. دوز را خودتان وارد می‌کنید؛ برنامه دوزی پیشنهاد نمی‌دهد. برای هشدار مطمئن پس‌زمینه، APK بومی لازم است.</div>
+        <div id="medsPanel" class="hidden">
+          <div class="form-row mt8">
+            <label><span class="label">نام دارو</span><input id="medName" class="input" placeholder="مثلاً متفورمین"></label>
+            <label><span class="label">دوز (متن آزاد)</span><input id="medDose" class="input" placeholder="مثلاً ۵۰۰ میلی‌گرم — طبق تجویز پزشک"></label>
+          </div>
+          <div class="form-row mt8">
+            <label><span class="label">ساعت‌ها (با کاما جدا کنید)</span><input id="medTimes" class="input tabular" placeholder="۰۸:۰۰, ۲۰:۰۰"></label>
+            <label><span class="label">بازه (از — تا)</span><div style="display:flex; gap:6px"><input id="medFrom" class="input" type="date"><input id="medTo" class="input" type="date"></div></label>
+          </div>
+          <button id="btnAddMed" class="btn btn-primary btn-sm mt8">افزودن برنامه</button>
+          <div id="medsToday" class="mt8"></div>
+          <div id="medsList" class="list mt8"></div>
+        </div>
+      </div>
+    </section>
+
+    <!-- VIEW: SETTINGS -->
+    <section id="view-settings" class="view" aria-labelledby="tab-settings">
+      <div class="glass card card-lg reveal">
+        <div class="title">تنظیمات</div>
+        <div class="small muted">همهٔ تنظیمات روی همین دستگاه ذخیره می‌شود — بدون حساب کاربری.</div>
+
+        <div class="divider"></div>
+        <div class="title">ظاهر</div>
+        <div class="row mt8" style="gap:8px; flex-wrap:wrap">
+          <span class="small">تم</span>
+          <button class="chip active" data-theme-btn="dark">تیره</button>
+          <button class="chip" data-theme-btn="light">روشن</button>
+          <span class="small" style="margin-inline-start:8px">رنگ تأکیدی</span>
+          <button class="chip active" data-accent-btn="gold">طلایی</button>
+          <button class="chip" data-accent-btn="teal">فیروزه‌ای</button>
+          <button class="chip" data-accent-btn="rose">رز</button>
+          <button class="chip" data-accent-btn="violet">بنفش</button>
+        </div>
+        <div class="row mt8" style="gap:8px; flex-wrap:wrap">
+          <label class="chip"><input type="checkbox" id="setPersianDigits" checked class="sr-only"> ارقام فارسی</label>
+          <label><span class="label">شدت انیمیشن</span><select id="setMotion" class="select" style="width:auto"><option value="low">کم (بهینه)</option><option value="medium">متوسط</option><option value="high">زیاد</option></select></label>
+        </div>
+
+        <div class="divider"></div>
+        <div class="title">مکان و اوقات شرعی</div>
+        <div class="row mt8" style="gap:8px; flex-wrap:wrap">
+          <span id="settingsCity" class="pill">—</span>
+          <span id="settingsCoords" class="small muted">—</span>
+        </div>
+        <div class="row mt8" style="gap:8px"><button id="btnSettingsLocate" class="btn btn-ghost btn-sm">تشخیص مکان</button><button id="btnSettingsOwqat" class="btn btn-ghost btn-sm">تنظیمات اوقات</button></div>
+        <div class="small muted mt8">روش محاسبه، مذهب عصر، و تنظیم دقیقه‌ای هر نماز در تب «اوقات شرعی» قابل تغییر است.</div>
+
+        <div class="divider"></div>
+        <div class="title">داده‌ها</div>
+        <div class="row mt8" style="gap:8px; flex-wrap:wrap">
+          <button id="btnExportAll" class="btn btn-ghost btn-sm">خروجی JSON</button>
+          <label class="btn btn-ghost btn-sm" style="cursor:pointer">ورود JSON <input id="importFile" type="file" accept="application/json" class="sr-only"></label>
+          <button id="btnClearAll" class="btn btn-ghost btn-sm" style="background:rgba(255,80,80,.12); border-color:rgba(255,80,80,.22)">پاک کردن همهٔ داده‌ها</button>
+        </div>
+        <div class="small muted mt8">خروجی شامل کارها، یادداشت‌ها، یادآورها، تولدها و داروها است و رمزگذاری نشده — آن را امن نگه دارید.</div>
+
+        <div class="divider"></div>
+        <div class="title">درباره و حریم خصوصی</div>
+        <div class="desc mt8" style="line-height:2">
+          <b>فطرس ۲.۰</b> — «همراه لحظه‌های زندگی». بدون حساب، بدون سرور، بدون تبلیغ، بدون ردیاب.<br>
+          • تقویم: تبدیل شمسی/میلادی دقیق (الگوریتم jalaali-js تأییدشده)؛ قمری جدولی است و ممکن است ‎۱± روز با رؤیت هلال تفاوت داشته باشد.<br>
+          • اوقات شرعی: محاسبهٔ نجومی محلی (بدون API پولی) با روش‌های تهران/MWL/مصری/کراچی/ام‌القری.<br>
+          • آب‌وهوا (اختیاری): از Open-Meteo (رایگان و بدون کلید) — فقط وقتی آنلاین باشید.<br>
+          • مکان: فقط با اجازهٔ شما و فقط برای محاسبهٔ اوقات/قبله/آب‌وهوا استفاده می‌شود و به جایی ارسال نمی‌شود.<br>
+          • دسترسی‌ها: اعلان و حسگر جهت فقط با اجازهٔ صریح؛ همه را می‌توانید در تنظیمات مرورگر لغو کنید.<br>
+          • متن‌باز فرضی: قبل از انتشار عمومی، مجوز فونت «رخ» را بررسی کنید.<br>
+          <span class="small muted">ساخته‌شده با HTML/CSS/JS خام — بدون فریم‌ورک، بدون بیلد.</span>
+        </div>
+        <div class="row mt8"><span id="appVersion" class="pill">نسخه ۲.۰</span><a href="icons/make-icons.html" target="_blank" rel="noopener" class="link">ساخت PNG آیکون</a></div>
+
+        <div class="divider"></div>
+        <div class="title">نصب و آفلاین</div>
+        <div class="small muted" style="line-height:2">
+          برای نصب: در Chrome اندروید → منوی ⋮ → «Install app» یا «Add to Home screen».<br>
+          PWA فقط روی <code>https://</code> یا <code>localhost</code> کار می‌کند، نه <code>file://</code>.<br>
+          برای به‌روزرسانی: وقتی «نسخهٔ جدید» آمد، روی «به‌روزرسانی» بزنید تا کش تازه شود.
+        </div>
+        <div class="row mt8"><button id="btnInstall" class="btn btn-primary btn-sm sheen hidden">نصب فطرس</button><button id="btnCheckUpdate" class="btn btn-ghost btn-sm">بررسی به‌روزرسانی</button></div>
+
+        <div class="divider"></div>
+        <div class="title">راهنمای APK (خلاصه)</div>
+        <div class="small muted" style="line-height:2">راهنمای کامل در README.md است. خلاصه: PWA را روی GitHub Pages منتشر کنید → با Capacitor/Cloud Build یک APK دیباگ بسازید → روی گوشی Allow unknown sources → نصب و تست.</div>
+      </div>
+    </section>
+  </main>
+
+  <!-- Bottom nav -->
+  <nav class="nav" role="navigation" aria-label="ناوبری اصلی">
+    <div class="nav-inner" id="navInner">
+      <div id="navIndicator" class="nav-indicator" aria-hidden="true" style="width:0; transform:translateX(0)"></div>
+
+      <button class="nav-btn active" data-view="home" id="tab-home" aria-current="page">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M3 10 L12 3 L21 10 V20 H14 V14 H10 V20 H3 Z"/></svg>
+        <span>خانه</span>
+      </button>
+      <button class="nav-btn" data-view="calendar" id="tab-calendar">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><rect x="3" y="4" width="18" height="16" rx="2"/><path d="M16 2v4 M8 2v4 M3 10h18"/><circle cx="12" cy="15" r="1.2" fill="currentColor" stroke="none"/></svg>
+        <span>تقویم</span>
+      </button>
+      <button class="nav-btn" data-view="owqat" id="tab-owqat">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><circle cx="12" cy="12" r="7"/><path d="M12 12 L12 7"/><path d="M12 12 L15 13.5"/></svg>
+        <span>اوقات شرعی</span>
+      </button>
+      <button class="nav-btn" data-view="tools" id="tab-tools">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><rect x="4" y="4" width="16" height="16" rx="3"/><path d="M9 12h6 M12 9v6"/></svg>
+        <span>ابزارها</span>
+      </button>
+      <button class="nav-btn" data-view="settings" id="tab-settings">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><circle cx="12" cy="12" r="3"/><path d="M12 1v2 M12 21v2 M4.22 4.22l1.42 1.42 M18.36 18.36l1.42 1.42 M1 12h2 M21 12h2 M4.22 19.78l1.42-1.42 M18.36 5.64l1.42-1.42"/></svg>
+        <span>تنظیمات</span>
+      </button>
+    </div>
+  </nav>
+
+  <!-- FAB -->
+  <div id="fab" class="fab" aria-label="اقدام سریع">
+    <div id="fabMenu" class="fab-menu" role="menu">
+      <button class="fab-item" data-fab="note" role="menuitem">📝 یادداشت تازه</button>
+      <button class="fab-item" data-fab="reminder" role="menuitem">⏰ یادآور تازه</button>
+      <button class="fab-item" data-fab="task" role="menuitem">✓ کار تازه</button>
+      <button class="fab-item" data-fab="birthday" role="menuitem">🎂 تولد تازه</button>
+    </div>
+    <button id="fabMain" class="fab-main" aria-label="باز کردن اقدام سریع" aria-expanded="false">
+      <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><path d="M12 5v14M5 12h14"/></svg>
+    </button>
+  </div>
+
+  <!-- Sheets -->
+  <div id="sheetSearch" class="sheet" role="dialog" aria-modal="true" aria-label="جستجو">
+    <div class="sheet-backdrop" data-close></div>
+    <div class="sheet-panel">
+      <div class="sheet-handle"></div>
+      <div class="title">جستجو</div>
+      <input id="globalSearch" class="input mt8" placeholder="در کارها، یادداشت‌ها، یادآورها و مناسبت‌ها جستجو کنید…">
+      <div id="globalSearchResults" class="list mt8"></div>
+    </div>
+  </div>
+
+  <div id="sheetOwqat" class="sheet" role="dialog" aria-modal="true" aria-label="تنظیمات اوقات شرعی">
+    <div class="sheet-backdrop" data-close></div>
+    <div class="sheet-panel">
+      <div class="sheet-handle"></div>
+      <div class="title">تنظیمات اوقات شرعی</div>
+      <div class="small muted">تنظیم دقیقه‌ای هر نماز (مثلاً اذان تهران ‎+۲ دقیقه)</div>
+      <div id="owqatAdjusts" class="grid mt8"></div>
+      <div class="row mt12"><button class="btn btn-ghost btn-sm" data-close>بستن</button><button id="btnSaveOwqatAdjusts" class="btn btn-primary btn-sm">ذخیره</button></div>
+    </div>
+  </div>
+
+  <div id="confirmDialog" class="dialog" role="dialog" aria-modal="true" aria-labelledby="confirmTitle">
+    <div class="dialog-backdrop" data-close></div>
+    <div class="dialog-card">
+      <div id="confirmTitle" class="title">آیا مطمئن هستید؟</div>
+      <div id="confirmDesc" class="small muted mt8">—</div>
+      <div class="row mt12" style="justify-content:flex-end; gap:8px"><button class="btn btn-ghost btn-sm" data-close>انصراف</button><button id="confirmOk" class="btn btn-primary btn-sm">تأیید</button></div>
+    </div>
+  </div>
+
+  <div id="editDialog" class="dialog" role="dialog" aria-modal="true" aria-label="ویرایش">
+    <div class="dialog-backdrop" data-close></div>
+    <div class="dialog-card" style="max-height:86dvh; overflow:auto">
+      <div id="editTitle" class="title">ویرایش</div>
+      <div id="editBody" class="mt8"></div>
+      <div class="row mt12" style="justify-content:flex-end; gap:8px"><button class="btn btn-ghost btn-sm" data-close>انصراف</button><button id="editSave" class="btn btn-primary btn-sm">ذخیره</button></div>
+    </div>
+  </div>
+
+  <!-- Data + App script -->
+  <script src="data/occasions.js"></script>
+  <script src="script.js"></script>
+  <noscript><div style="position:fixed;inset:0;display:grid;place-items:center;background:#101114;color:#FFF8EA;padding:24px;text-align:center;z-index:999">برای اجرای فطرس، جاوااسکریپت را فعال کنید.<br>Please enable JavaScript to run FETROS.</div></noscript>
+</body>
+</html>

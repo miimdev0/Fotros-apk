@@ -1,0 +1,74 @@
+{
+  "name": "فطرس — همراه لحظه‌های زندگی",
+  "short_name": "فطرس",
+  "description": "تقویم فارسی، اوقات شرعی، قبله‌نما، ذکر، یادداشت و یادآور — همه آفلاین و بدون حساب کاربری.",
+  "id": "/fetros/",
+  "lang": "fa",
+  "dir": "rtl",
+  "start_url": "./index.html",
+  "scope": "./",
+  "display": "standalone",
+  "display_override": ["window-controls-overlay", "standalone", "browser"],
+  "orientation": "any",
+  "theme_color": "#101114",
+  "background_color": "#101114",
+  "categories": ["utilities", "lifestyle", "reference"],
+  "icons": [
+    {
+      "src": "icons/icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "icons/icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "icons/icon-maskable-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "maskable"
+    },
+    {
+      "src": "icons/icon.svg",
+      "sizes": "512x512",
+      "type": "image/svg+xml",
+      "purpose": "any"
+    },
+    {
+      "src": "icons/icon-monochrome.svg",
+      "sizes": "512x512",
+      "type": "image/svg+xml",
+      "purpose": "monochrome"
+    }
+  ],
+  "shortcuts": [
+    {
+      "name": "یادداشت سریع",
+      "short_name": "یادداشت",
+      "description": "یک یادداشت تازه بنویس",
+      "url": "./index.html?action=new-note",
+      "icons": [{ "src": "icons/icon-192.png", "sizes": "192x192" }]
+    },
+    {
+      "name": "یادآور سریع",
+      "short_name": "یادآور",
+      "description": "یک یادآور تازه بساز",
+      "url": "./index.html?action=new-reminder",
+      "icons": [{ "src": "icons/icon-192.png", "sizes": "192x192" }]
+    },
+    {
+      "name": "اوقات شرعی امروز",
+      "short_name": "اوقات",
+      "url": "./index.html#owqat",
+      "icons": [{ "src": "icons/icon-192.png", "sizes": "192x192" }]
+    }
+  ],
+  "screenshots": [],
+  "handle_links": "preferred",
+  "launch_handler": { "client_mode": "navigate-existing" },
+  "edge_side_panel": { "preferred_width": 420 }
+}
