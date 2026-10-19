@@ -266,7 +266,7 @@ node tests/dom.mjs     # ۱۰۶ بررسی رابط/کاربری
 | مورد | نتیجه |
 |---|---|
 | بیلد ابری | ✅ **سبز** — «Build FETROS Android APK (bundled · offline-ready)» روی `main`، همهٔ مراحل PASS (Node/JDK 17 → npm ci → تست‌ها → `build-www` → `cap add/sync` → آیکون برند → `assembleDebug` → Artifact → Release). زمان: ~۲ دقیقه |
-| APK | ✅ ساخته و **قابل دانلود** است: `fetros-debug.apk` · **4.8 MB** (5,003,443 بایت) · امضای debug پیش‌فرض · `contentType: application/vnd.android.package-archive` |
+| APK | ✅ ساخته و **قابل دانلود** است: asset به نام `fetros-debug.apk` در ریلیز (حجم حدود 4.8 MB — عدد دقیق و چک‌سام در همان صفحه: `fetros-debug.apk.sha256.txt`) · امضای debug پیش‌فرض |
 | ریلیز | ✅ تگ `v2-debug` با APK به‌عنوان asset (بدون zip) + `fetros-debug.apk.sha256.txt` — <https://github.com/miimdev0/Fotros-apk/releases/tag/v2-debug> |
 | دانلود مستقیم | <https://github.com/miimdev0/Fotros-apk/releases/download/v2-debug/fetros-debug.apk> |
 | Artifact | ✅ در هر اجرا: **Artifacts → `fetros-debug.apk`** (۹۰ روز می‌ماند) |
