@@ -22,7 +22,7 @@
 | فایل `fonts/Rokh.ttf` | ⛔ عمداً گذاشته نشده — خودتان اضافه می‌کنید؛ نبودش هیچ خطایی نمی‌دهد |
 | فایل‌های `audio/*.mp3` | ⛔ عمداً گذاشته نشده — اختیاری؛ برنامه موجودی آن‌ها را در زمان اجرا بررسی می‌کند |
 | PNG آیکون‌ها | ✅ ساخته شد (`icon-192.png`, `icon-512.png`, `icon-maskable-512.png`) — کیفیت پیکسلی را روی گوشی ببینید |
-| APK | ⛔ **ساخته نشده** — در این محیط امکان‌پذیر نیست. مسیر رایگانِ ابری در بخش ۱۰ آماده و توضیح داده شده |
+| APK | ✅ **ساخته شده و قابل دانلود** — بیلد خودکار GitHub Actions؛ فایل‌های وب داخل خود APK هستند (آفلاین کار می‌کند). لینک ریلیز و راهنمای نصب: بخش ۱۰ |
 
 ---
 
@@ -244,6 +244,9 @@ PNGهای حاضر در ریپو را هم همین طراحی تولید کرد
 | بصری | ۳۲۰/۳۶۰/۴۱۲/تبلت/دسکتاپ، دو تم، بدون اسکرول افقی | ⚠️ **MANUAL — اینجا غیرقابل‌اجرا** | CSS موبایل‌فرست + `overflow-x:hidden` + `max-width:980px`؛ لطفاً با DevTools گوشی یا Chrome «Desktop site» ببینید |
 | حرکت | احترام به reduced-motion، ارزان‌بودن «کم»، بدون layout thrash | ✅ PASS (کد) · MANUAL (FPS) | `data-motion=low`: بلور/نویز/انیمیشن‌های بی‌پایان خاموش، `backdrop-filter` خاموش، `visibilitychange` توقف حلقه‌ها |
 | کنسول | بدون خطا در محیط مرورگر | ✅ PASS | jsdom با `window.onerror` + `unhandledrejection`: صفر پیام |
+| بسته‌بندی | فایل‌های وب داخل خودک APK (نه بازکردن سایت) | ✅ PASS | مرحلهِ «بازکردن APK و تأیید محتوا» در بیلد Actions: `assets/public/*` وجود داشت، `server.url` نداشت |
+| بسته‌بندی | ساخت APK در ابر + Artifact + Release با چک‌سام | ✅ PASS | اجرای واقعی: بیلد سبز روی `main` ؛ انتشار `v2-debug` با `fetros-debug.apk` |
+| بسته‌بندی | نصب و اجرای APK روی گوشی واقعی | ⚠️ **MANUAL** | این محیط گوشی/گرافیک نیست — با مراحل بخش ۱۰٭۴ انجام می‌شود |
 
 ### اجرای دوبارهٔ تست‌ها (در Termux یا هر سیستم با Node ≥ 18)
 ```bash
@@ -257,6 +260,23 @@ node tests/dom.mjs     # ۱۰۶ بررسی رابط/کاربری
 ---
 
 ## ۱۰) ساخت APK — بیلد ابریِ رایگان، فایل‌های وب داخلِ بسته
+
+### ۱۰٫۰ وضعیت بیلد (نتیجهٔ واقعیِ اجراشده در GitHub Actions)
+
+| مورد | نتیجه |
+|---|---|
+| بیلد ابری | ✅ **سبز** — «Build FETROS Android APK (bundled · offline-ready)» روی `main`، همهٔ مراحل PASS (Node/JDK 17 → npm ci → تست‌ها → `build-www` → `cap add/sync` → آیکون برند → `assembleDebug` → Artifact → Release). زمان: ~۲ دقیقه |
+| APK | ✅ ساخته و **قابل دانلود** است: `fetros-debug.apk` · **4.8 MB** (5,003,443 بایت) · امضای debug پیش‌فرض · `contentType: application/vnd.android.package-archive` |
+| ریلیز | ✅ تگ `v2-debug` با APK به‌عنوان asset (بدون zip) + `fetros-debug.apk.sha256.txt` — <https://github.com/miimdev0/Fotros-apk/releases/tag/v2-debug> |
+| دانلود مستقیم | <https://github.com/miimdev0/Fotros-apk/releases/download/v2-debug/fetros-debug.apk> |
+| Artifact | ✅ در هر اجرا: **Artifacts → `fetros-debug.apk`** (۹۰ روز می‌ماند) |
+| محتوای بسته | مرحلهٔ «بازکردن APK و تأیید محتوا» چک می‌کند `assets/public/index.html`، `style.css`، `script.js`، `manifest.json`، `offline.html`، `data/occasions.js`، `icons/*.png` و `sw.js` **داخل خود APK** باشند و `server.url` وجود نداشته باشد → پس آفلاین باز می‌شود و TWA نیست |
+| بیلد دوباره | هر `git push` روی `main` خودکار بیلد را اجرا می‌کند و همان تگ `v2-debug` را با APK تازه جایگزین می‌کند (لینک دانلود ثابت می‌ماند). دستی: تب Actions → Run workflow |
+| آنچه اینجا انجام **نشده** | ⚠️ بازکردن/اجرای APK روی گوشی واقعی و آمار Lighthouse — این‌ها فقط روی دستگاه شما قابل تست است (بخش ۱۰٫۴) |
+
+> اگر جایی از این سند عددی می‌بینید که با ریلیز فرق داشت: ریلیز معتبر است؛ APK با هر بیلد
+> دوباره ساخته می‌شود (شمارهٔ بیلد در `versionName` می‌آید: `2.0.0-build<run>`).
+
 
 ### ۱۰٫۱ سه راه، و تفاوت واقعی‌شان
 | راه | چیست | آفلاین؟ | به آدرس سایت نیاز دارد؟ |
@@ -414,7 +434,7 @@ sed -i 's#<!-- Permissions -->#<!-- Permissions -->\n    <uses-permission androi
 4. **ذخیرهٔ فایل واقعی:** SAF برای پشتیبان در حافظهٔ گوشی (به‌جای دانلود مرورگری).
 5. **Biometric lock** برای بخش یادداشت/دارو.
 6. **Tooltips/haptics دقیق‌تر** و اسکرول‌بر-سنسور قبله با `OrientationLock`.
-7. **به‌روزرسانی OTA** (Capgo/Flow — پولی) یا فقط refresh سرویس‌ورکر (رایگان، همین الان هست).
+7. **به‌روزرسانی:** در نسخهِ مرورگر همان refresh سرویس‌ورکر کافی است (رایگان، همین الان هست)؛ در نسخهِ APK با نصب فایل تازه روی همان نصب قبلی (دادهها می‌ماند) — یا OTA پولی مانند Capgo/Flow.
 
 ---
 

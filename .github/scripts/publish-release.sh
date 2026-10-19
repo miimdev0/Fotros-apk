@@ -9,6 +9,7 @@
 set -uo pipefail
 
 APK="${APK_PATH:-out/fetros-debug.apk}"
+CHECKSUM="$(dirname "$APK")/$(basename "$APK").sha256.txt"
 TAG="${REL_TAG:-v2-debug}"
 PUBLISH="${PUBLISH:-true}"
 TITLE="${TITLE:-فطرس v2 — APK دیباگ (اندروید)}"
@@ -36,6 +37,8 @@ cat > "$NOTES" <<MD
 نیست و آدرس سایت را باز نمی‌کند. برای باز کردن برنامه به اینترنت نیاز ندارید:
 تقویم، مناسبت‌ها، اوقات شرعی، قبله‌نما، ذکر، برنامهٔ روز و یادداشت‌ها کاملاً آفلاین
 کار می‌کنند. فقط آب‌وهوا (Open-Meteo) و کشیدن نسخهٔ تازهٔ داده نیاز به اتصال دارند.
+
+`fetros-debug.apk.sha256.txt` هم کنار همین فایل است؛ اگر خواستید صحت دانلود را بررسی کنید: `sha256sum fetros-debug.apk`.
 
 **نصب روی گوشی — ۴ قدم**
 1. همین \`fetros-debug.apk\` را با مرورگرِ همان گوشی دانلود کنید (روی لینک فایل پایین همین صفحه بزنید).
@@ -81,16 +84,19 @@ else
   say "هشدار: جابه‌جایی تگ ممکن نشد (ریلیز روی تگ قبلی می‌ماند؛ فایل APK بازم جایگزین می‌شود)"
 fi
 
+ASSETS=("$APK")
+[ -s "$CHECKSUM" ] && ASSETS+=("$CHECKSUM")
+
 if [ "$HAD_RELEASE" = "1" ]; then
   say "ریلیز ${TAG} از قبل وجود داشت → فایل APK جایگزین می‌شود"
-  gh release upload "$TAG" "$APK" --clobber || die "آپلود asset در ریلیز ${TAG} ناموفق بود"
+  gh release upload "$TAG" "${ASSETS[@]}" --clobber || die "آپلود asset در ریلیز ${TAG} ناموفق بود"
   gh release edit "$TAG" --title "$TITLE" --notes-file "$NOTES" || true
 elif [ "$HAD_TAG" = "1" ]; then
   say "ریلیز تازه روی تگ موجود ${TAG} ساخته می‌شود"
-  gh release create "$TAG" "$APK" --title "$TITLE" --notes-file "$NOTES" || die "ساخت ریلیز ناموفق بود"
+  gh release create "$TAG" "${ASSETS[@]}" --title "$TITLE" --notes-file "$NOTES" || die "ساخت ریلیز ناموفق بود"
 else
   say "تگ و ریلیز تازه ساخته می‌شوند"
-  gh release create "$TAG" "$APK" --target "$GITHUB_SHA" --title "$TITLE" --notes-file "$NOTES" --latest \
+  gh release create "$TAG" "${ASSETS[@]}" --target "$GITHUB_SHA" --title "$TITLE" --notes-file "$NOTES" --latest \
     || die "ساخت ریلیز/تگ ناموفق بود"
 fi
 
